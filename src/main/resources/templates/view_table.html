@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Таблица: ' + ${tableName}"></title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 90%;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .back-btn:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 th:text="'Таблица: ' + ${tableName}"></h2>
+
+    <table>
+        <thead>
+        <!-- Если таблица не пуста, отображаем заголовки -->
+        <tr th:if="${not #lists.isEmpty(tableData)}">
+            <th th:each="entry : ${tableData[0].keySet()}" th:text="${entry}"></th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Если таблица содержит данные, отображаем их -->
+        <tr th:each="row : ${tableData}">
+            <td th:each="value : ${row.values()}" th:text="${value}"></td>
+        </tr>
+
+        <!-- Если таблица пуста, выводим сообщение "Нет данных в таблице" -->
+        <tr th:if="${#lists.isEmpty(tableData)}">
+            <td colspan="100%" th:text="'Нет данных в таблице'"></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <a href="/tables" class="back-btn">Назад</a>
+</div>
+</body>
+</html>

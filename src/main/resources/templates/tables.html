@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Список таблиц</title>
+    <style>
+        @keyframes gradientAnimation {
+            0% { background-position: 50% 0%; }
+            50% { background-position: 50% 100%; }
+            100% { background-position: 50% 0%; }
+        }
+
+        html, body {
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(180deg, #455a64, #607d8b, #78909c, #90a4ae, #b0bec5);
+            background-size: 100% 500%;
+            animation: gradientAnimation 8s infinite alternate ease-in-out;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            max-width: 600px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h2 {
+            color: #343a40;
+        }
+
+        .table-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .table-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .table-list li:hover {
+            background-color: #e3e4e8;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .add-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            display: block;
+            text-decoration: none;
+        }
+
+        .add-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Список таблиц</h2>
+
+    <ul class="table-list">
+        <li th:each="table : ${tables}">
+            <a th:href="@{'/tables/' + ${table}}" style="text-decoration: none; color: inherit;">
+                <span th:text="${table}"></span>
+            </a>
+            <form th:action="@{/tables/delete}" method="post" style="margin: 0;">
+                <input type="hidden" name="tableName" th:value="${table}">
+                <button type="submit" class="delete-btn">Удалить</button>
+            </form>
+        </li>
+    </ul>
+
+    <a href="/tables/new" class="add-btn">Добавить новую таблицу</a>
+</div>
+</body>
+</html>

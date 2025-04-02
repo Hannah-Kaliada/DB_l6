@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Создать таблицу</title>
+    <style>
+        @keyframes gradientAnimation {
+            0% { background-position: 50% 0%; }
+            50% { background-position: 50% 100%; }
+            100% { background-position: 50% 0%; }
+        }
+
+        html, body {
+            height: 100vh; /* Фон на весь экран */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(180deg, #455a64, #607d8b, #78909c, #90a4ae, #b0bec5);
+            background-size: 100% 500%;
+            animation: gradientAnimation 30s infinite alternate ease-in-out;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 900px;
+            background: #f0f4f8; /* Светло-серый фон формы */
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #37474f; /* Тёмно-серый */
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: block;
+            color: #455a64; /* Средне-серый */
+        }
+
+        input[type="text"], select {
+            width: calc(100% - 20px);
+            padding: 8px 10px;
+            margin-bottom: 12px;
+            border: 1px solid #90a4ae; /* Серо-голубая рамка */
+            border-radius: 4px;
+            background-color: #eceff1; /* Светло-серый */
+            color: #37474f;
+        }
+
+        .field-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            border: 1px solid #cfd8dc;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: #eceff1;
+        }
+
+        .field-row > * {
+            flex: 1 1 auto;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+
+        .remove-btn {
+            background-color: #b71c1c;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            flex: 0 0 auto;
+        }
+
+        .remove-btn:hover {
+            background-color: #c62828;
+        }
+
+        .add-btn, .submit-btn {
+            background-color: #1d334a; /* Глубокий голубой */
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .add-btn:hover, .submit-btn:hover {
+            background-color: #1d334a;
+        }
+
+        @media (max-width: 600px) {
+            .field-row {
+                flex-direction: column;
+            }
+        }
+
+        .default-input {
+            width: 100%;
+            max-width: 180px;
+        }
+    </style>
+    <script>
+        function addField() {
+            const container = document.getElementById("fields");
+            const fieldIndex = container.children.length; // Уникальность ID
+            const div = document.createElement("div");
+            div.className = "field-row";
+            div.innerHTML = `
+        <div style="flex: 2 1 200px;">
+          <input type="text" name="fields_name" placeholder="Имя столбца" required>
+        </div>
+        <div style="flex: 2 1 200px;">
+          <select name="fields_type" required>
+            <option value="VARCHAR(255)">VARCHAR(255) - Текст</option>
+            <option value="CHAR(1)">CHAR(1) - Символ</option>
+            <option value="TEXT">TEXT - Длинный текст</option>
+            <option value="INT">INT - Целое число</option>
+            <option value="BIGINT">BIGINT - Большое целое число</option>
+            <option value="FLOAT">FLOAT - Дробное число</option>
+            <option value="DOUBLE">DOUBLE - Двойная точность</option>
+            <option value="DECIMAL">DECIMAL - Десятичное число</option>
+            <option value="BOOLEAN">BOOLEAN - Логический</option>
+            <option value="DATE">DATE - Дата</option>
+            <option value="TIME">TIME - Время</option>
+            <option value="TIMESTAMP">TIMESTAMP - Метка времени</option>
+            <option value="YEAR">YEAR - Год</option>
+            <option value="BLOB">BLOB - Двоичные данные</option>
+            <option value="ENUM">ENUM - Перечисление</option>
+            <option value="SET">SET - Множество</option>
+          </select>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" name="fields_notnull" id="notnull_${fieldIndex}" value="true">
+          <label for="notnull_${fieldIndex}">NOT NULL</label>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" name="fields_primary" id="primary_${fieldIndex}" value="true">
+          <label for="primary_${fieldIndex}">PRIMARY KEY</label>
+        </div>
+        <div style="flex: 1 1 150px;">
+          <input type="text" class="default-input" name="fields_default" placeholder="Default (опционально)">
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" name="fields_unique" id="unique_${fieldIndex}" value="true">
+          <label for="unique_${fieldIndex}">UNIQUE</label>
+        </div>
+        <button type="button" class="remove-btn" onclick="removeField(this)">Удалить</button>
+      `;
+            container.appendChild(div);
+        }
+        function removeField(button) {
+            const fieldRow = button.parentNode;
+            fieldRow.parentNode.removeChild(fieldRow);
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <h2>Создать новую таблицу</h2>
+    <form th:action="@{/tables/create}" method="post">
+        <label>Имя таблицы:</label>
+        <input type="text" name="tableName" placeholder="Введите имя таблицы" required>
+        <div id="fields"></div>
+        <button type="button" class="add-btn" onclick="addField()">Добавить поле</button>
+        <button type="submit" class="submit-btn">Создать таблицу</button>
+    </form>
+</div>
+</body>
+</html>
