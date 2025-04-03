@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Статус бекапа</title>
+    <script>
+        function createBackup() {
+            // Отправляем запрос на создание бекапа
+            fetch('/tables/backup', {
+                method: 'GET',
+            })
+                .then(response => response.json()) // ожидаем JSON ответ
+                .then(data => {
+                    if (data.success) {
+                        // Показать ссылку на скачивание
+                        document.getElementById('downloadLink').style.display = 'inline';
+                        document.getElementById('message').innerText = 'Дамп успешно создан. Вы можете скачать его.';
+                    } else {
+                        // Показать ошибку
+                        document.getElementById('message').innerText = 'Ошибка при создании дампа: ' + data.error;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('message').innerText = 'Ошибка при создании дампа: ' + error;
+                });
+        }
+    </script>
+</head>
+<body>
+
+<div>
+    <!-- Кнопка для создания бекапа -->
+    <button onclick="createBackup()">Создать бекап</button>
+</div>
+
+<!-- Сообщение для пользователя -->
+<p id="message"></p>
+
+<!-- Ссылка на скачивание бекапа, скрыта до создания -->
+<div id="downloadLink" style="display: none;">
+    <a id="downloadLinkHref" href="#">Скачать бекап</a>
+</div>
+
+<h3>Восстановить из бекапа</h3>
+<form action="/tables/upload" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" required/>
+    <button type="submit">Загрузить бекап</button>
+</form>
+
+</body>
+</html>

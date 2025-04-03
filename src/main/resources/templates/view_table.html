@@ -10,7 +10,19 @@
             text-align: center;
             padding: 20px;
         }
+        .export-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
 
+        .export-btn:hover {
+            background: #218838;
+        }
         .container {
             max-width: 90%;
             margin: auto;
@@ -35,6 +47,15 @@
         th {
             background-color: #007bff;
             color: white;
+            cursor: pointer;
+        }
+
+        th.sorted-asc::after {
+            content: " ▲";
+        }
+
+        th.sorted-desc::after {
+            content: " ▼";
         }
 
         .back-btn {
@@ -55,28 +76,82 @@
 <body>
 <div class="container">
     <h2 th:text="'Таблица: ' + ${tableName}"></h2>
-
-    <table>
+    <table id="dataTable">
         <thead>
-        <!-- Если таблица не пуста, отображаем заголовки -->
         <tr th:if="${not #lists.isEmpty(tableData)}">
-            <th th:each="entry : ${tableData[0].keySet()}" th:text="${entry}"></th>
+            <th th:each="entry, iterStat : ${tableData[0].keySet()}" th:text="${entry}"></th>
         </tr>
         </thead>
         <tbody>
-        <!-- Если таблица содержит данные, отображаем их -->
         <tr th:each="row : ${tableData}">
             <td th:each="value : ${row.values()}" th:text="${value}"></td>
         </tr>
-
-        <!-- Если таблица пуста, выводим сообщение "Нет данных в таблице" -->
         <tr th:if="${#lists.isEmpty(tableData)}">
             <td colspan="100%" th:text="'Нет данных в таблице'"></td>
         </tr>
         </tbody>
     </table>
-
     <a href="/tables" class="back-btn">Назад</a>
+    <a th:href="@{'/tables/' + ${tableName} + '/export'}" class="export-btn">Экспорт в Excel</a>
 </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const table = document.getElementById('dataTable');
+        if (!table) return;
+        const headers = table.querySelectorAll('th');
+        let sortOrder = {}; // для отслеживания порядка сортировки по индексам столбцов
+
+        // Функция сортировки по заданной колонке и порядку (asc/desc)
+        function sortColumn(columnIndex, order) {
+            // Убираем классы сортировки у всех заголовков, кроме текущего
+            headers.forEach((h, idx) => {
+                if (idx !== columnIndex) {
+                    h.classList.remove('sorted-asc', 'sorted-desc');
+                }
+            });
+            const header = headers[columnIndex];
+            header.classList.remove('sorted-asc', 'sorted-desc');
+            header.classList.add(order === 'asc' ? 'sorted-asc' : 'sorted-desc');
+
+            const tbody = table.querySelector('tbody');
+            // Фильтруем только строки, содержащие td (исключая, например, строку с сообщением "Нет данных")
+            const rowsArray = Array.from(tbody.querySelectorAll('tr'))
+                .filter(row => row.querySelectorAll('td').length > 0);
+
+            rowsArray.sort((rowA, rowB) => {
+                const cellA = rowA.querySelectorAll('td')[columnIndex].innerText.trim();
+                const cellB = rowB.querySelectorAll('td')[columnIndex].innerText.trim();
+                // Если значения являются числами, сортируем числовым способом
+                const numA = parseFloat(cellA);
+                const numB = parseFloat(cellB);
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return order === 'asc' ? numA - numB : numB - numA;
+                } else {
+                    // Иначе строковое сравнение
+                    return order === 'asc' ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+                }
+            });
+
+            // Обновляем порядок строк в tbody
+            rowsArray.forEach(row => tbody.appendChild(row));
+            sortOrder[columnIndex] = order;
+        }
+
+        // Добавляем обработчики клика на заголовки
+        headers.forEach((header, index) => {
+            header.addEventListener('click', function() {
+                const currentOrder = sortOrder[index] || 'asc';
+                const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+                sortColumn(index, newOrder);
+            });
+        });
+
+        // По умолчанию сортируем по первой колонке по возрастанию, если таблица не пуста
+        if (headers.length > 0 && table.querySelector('tbody tr td')) {
+            sortColumn(0, 'asc');
+        }
+    });
+</script>
 </body>
 </html>
