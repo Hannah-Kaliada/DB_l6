@@ -11,6 +11,8 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -289,6 +291,16 @@ public class TableController {
 				}
 
 				return "redirect:/tables/" + tableName;
+		}
+		@PostMapping("/{tableName}/delete-columns")
+		@ResponseBody
+		public ResponseEntity<?> deleteColumns(@PathVariable String tableName, @RequestBody List<String> columns) {
+				try {
+						tableService.deleteColumns(tableName, columns);
+						return ResponseEntity.ok().build();
+				} catch (Exception e) {
+						return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка удаления столбцов");
+				}
 		}
 
 

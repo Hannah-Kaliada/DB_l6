@@ -2,6 +2,7 @@ package com.pacukievich.lab6.service;
 
 import com.pacukievich.lab6.model.FieldRequest;
 import com.pacukievich.lab6.model.TableRequest;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -230,6 +231,39 @@ public class TableService {
 						return null;
 				}
 		}
+		public void deleteColumns(String tableName, List<String> columns) {
+				if (tableName == null || tableName.isBlank()) {
+						throw new IllegalArgumentException("Имя таблицы не указано");
+				}
+
+				if (columns == null || columns.isEmpty()) {
+						throw new IllegalArgumentException("Список удаляемых столбцов пуст");
+				}
+
+				// Валидация имён столбцов
+				for (String column : columns) {
+						if (column == null || column.isBlank() || column.equalsIgnoreCase("id")) {
+								throw new IllegalArgumentException("Недопустимое имя столбца для удаления: " + column);
+						}
+				}
+
+				// Безопасное экранирование имён таблицы и столбцов для PostgreSQL
+				String sanitizedTable = tableName.replaceAll("[^\\w\\d_]", "");
+				String sql = "ALTER TABLE \"" + sanitizedTable + "\" " +
+								columns.stream()
+												.map(col -> "DROP COLUMN \"" + col.replaceAll("\"", "") + "\"")
+												.collect(Collectors.joining(", "));
+
+				System.out.println("SQL для удаления столбцов: " + sql);
+
+				try {
+						jdbcTemplate.execute(sql);
+				} catch (DataAccessException e) {
+						System.err.println("Ошибка при удалении столбцов: " + e.getMessage());
+						throw new RuntimeException("Ошибка при выполнении SQL-запроса", e);
+				}
+		}
+
 
 }
 

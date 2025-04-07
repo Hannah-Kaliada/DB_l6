@@ -4,30 +4,29 @@
     <meta charset="UTF-8">
     <title th:text="'Таблица: ' + ${tableName}"></title>
     <!-- Подключаем FontAwesome для иконок -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        /* Общие стили */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f4f6f8;
             margin: 0;
             padding: 20px;
+            text-align: center;
         }
         .container {
             max-width: 1200px;
             margin: 40px auto;
-            background: #ffffff;
+            background: #fff;
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
         }
         h2 {
-            margin: 0 0 20px;
+            margin-bottom: 20px;
             font-size: 28px;
             text-align: left;
             color: #333;
         }
-        /* Панель кнопок */
         .button-bar {
             display: flex;
             gap: 12px;
@@ -57,7 +56,9 @@
         .btn-save:hover { background: #16a34a; }
         .btn-add-row { background: #3b82f6; }
         .btn-add-row:hover { background: #2563eb; }
-        /* Таблица */
+        .btn-delete-cols { background: #dc2626; }
+        .btn-delete-cols:hover { background: #b91c1c; }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -74,14 +75,17 @@
             color: #fff;
             font-weight: 600;
             cursor: pointer;
+            position: relative;
+        }
+        th.selected {
+            background-color: #1f2937;
         }
         th.sorted-asc::after { content: " ▲"; }
         th.sorted-desc::after { content: " ▼"; }
         td[contenteditable="true"] {
             background-color: #fff8dc;
         }
-        /* Кнопка удаления строки (иконка) */
-        .btn-delete-row {
+        .delete-row-btn {
             background: none;
             border: none;
             color: #ef4444;
@@ -89,50 +93,37 @@
             cursor: pointer;
             padding: 0;
         }
-        /* Для колонки с действиями: фиксированная ширина */
+        /* Для колонки с действием */
         th:last-child, td:last-child {
             width: 40px;
         }
-        /* Форма добавления столбцов */
-        .form-section {
-            margin-top: 30px;
+        /* Модальное окно для удаления столбцов (опционально можно сделать отдельной формой) */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 40%;
             text-align: left;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        .form-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: #333;
+        .modal-content h3 {
+            margin-top: 0;
         }
-        .field-row {
-            display: grid;
-            grid-template-columns: 2fr 2fr 1fr;
-            gap: 12px;
-            margin-bottom: 10px;
-            align-items: center;
+        .modal-buttons {
+            margin-top: 20px;
+            text-align: right;
         }
-        .field-row input[type="text"],
-        .field-row select {
-            padding: 8px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 100%;
-        }
-        .btn-add-field {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 12px;
-            background: #3b82f6;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn-add-field:hover {
-            background: #2563eb;
+        .modal .btn {
+            margin-left: 10px;
         }
     </style>
 </head>
@@ -147,6 +138,9 @@
         <a th:href="@{'/tables/' + ${tableName} + '/export'}" class="btn btn-export"><i class="fa-solid fa-file-export"></i> Экспорт</a>
         <button type="button" class="btn btn-add-row" onclick="addRow()"><i class="fa-solid fa-plus"></i> Добавить строку</button>
         <button type="submit" form="editForm" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Сохранить</button>
+        <button type="button" class="btn btn-delete-cols" onclick="openDeleteColumnModal()">
+            <i class="fa-solid fa-trash"></i> Удалить выбранные столбцы
+        </button>
     </div>
 
     <!-- Форма редактирования таблицы -->
@@ -154,8 +148,12 @@
         <table id="dataTable">
             <thead>
             <tr th:if="${not #lists.isEmpty(tableData)}">
-                <th th:each="entry : ${tableData[0].keySet()}" th:text="${entry}"></th>
-                <th>✖</th>
+                <!-- Каждый заголовок кликабельный для выделения столбца -->
+                <th th:each="entry : ${tableData[0].keySet()}"
+                    th:text="${entry}"
+                    onclick="toggleColumnSelection(this)">
+                </th>
+                <th><!-- Кнопка удаления строки, оставляем как есть --></th>
             </tr>
             </thead>
             <tbody>
@@ -164,7 +162,11 @@
                     contenteditable="true"
                     th:attr="data-row=${rowStat.index}, data-col=${colStat.index}"
                     th:text="${value}"></td>
-                <td><button type="button" class="btn-delete-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
+                <td>
+                    <button type="button" class="delete-row-btn" onclick="deleteRow(this)">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
             </tr>
             <tr th:if="${#lists.isEmpty(tableData)}">
                 <td colspan="100%">Нет данных в таблице</td>
@@ -173,49 +175,100 @@
         </table>
         <input type="hidden" name="updatedJson" id="updatedJson">
     </form>
+</div>
 
-    <!-- Форма добавления новых столбцов -->
-    <div class="form-section">
-        <div class="form-title">Добавить новые столбцы</div>
-        <form method="post" th:action="@{'/tables/' + ${tableName} + '/add-columns'}">
-            <div id="fields"></div>
-            <button type="button" class="btn btn-add-field" onclick="addField()">
-                <i class="fa-solid fa-plus"></i> Добавить столбец
-            </button>
-            <br>
-            <button type="submit" class="btn btn-save" style="margin-top: 15px;">
-                <i class="fa-solid fa-floppy-disk"></i> Сохранить изменения
-            </button>
-        </form>
+<!-- Модальное окно для удаления столбцов -->
+<div id="deleteColumnModal" class="modal">
+    <div class="modal-content">
+        <h3>Удаление столбцов</h3>
+        <p>Выбранные столбцы будут удалены. Вы уверены?</p>
+        <div class="modal-buttons">
+            <button type="button" class="btn btn-back" onclick="closeDeleteColumnModal()">Отмена</button>
+            <button type="button" class="btn btn-delete-cols" onclick="deleteSelectedColumns()">Удалить</button>
+        </div>
     </div>
 </div>
 
+<!-- FontAwesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
 <script>
+    // Функция для переключения выделения столбца при клике по заголовку
+    function toggleColumnSelection(thElem) {
+        thElem.classList.toggle("selected");
+    }
+
+    // Функция открытия модального окна для удаления столбцов
+    function openDeleteColumnModal() {
+        // Проверяем, какие столбцы выделены
+        let selected = document.querySelectorAll("thead th.selected");
+        if (selected.length === 0) {
+            alert("Выберите столбцы для удаления, кликнув по их заголовкам.");
+            return;
+        }
+        document.getElementById("deleteColumnModal").style.display = "block";
+    }
+
+    // Функция закрытия модального окна
+    function closeDeleteColumnModal() {
+        document.getElementById("deleteColumnModal").style.display = "none";
+    }
+
+    // Функция удаления выбранных столбцов
+    function deleteSelectedColumns() {
+        let selected = document.querySelectorAll("thead th.selected");
+        if (selected.length === 0) {
+            alert("Нет выделенных столбцов.");
+            return;
+        }
+        // Собираем названия столбцов для удаления
+        let columns = [];
+        selected.forEach(th => {
+            columns.push(th.innerText.trim());
+        });
+
+        // Отправляем запрос на сервер для удаления столбцов
+        const tableName = window.location.pathname.split("/").pop();
+        // Формируем данные для отправки (например, через POST форму)
+        fetch(`/tables/${tableName}/delete-columns`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(columns)
+        })
+            .then(response => {
+                if (response.ok) {
+                    // Если успешно, обновляем страницу
+                    window.location.reload();
+                } else {
+                    alert("Ошибка при удалении столбцов");
+                }
+            })
+            .catch(error => {
+                alert("Ошибка запроса: " + error);
+            });
+    }
+
+    // Функция удаления строки (без изменений)
     function deleteRow(button) {
         const row = button.closest('tr');
         const id = row.getAttribute('data-id');
         const tableName = window.location.pathname.split("/").pop();
 
-        console.log("Удаление строки с ID:", id); // Логируем ID
+        console.log("Удаление строки с ID:", id);
         if (!id) {
             alert("ID строки не найден.");
             return;
         }
-
         if (confirm("Вы уверены, что хотите удалить эту строку?")) {
             fetch(`/tables/${tableName}/delete-row`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({ id: id })
             }).then(response => {
-                console.log("Ответ от сервера:", response); // Логируем ответ от сервера
-                if (response.redirected) {
-                    window.location.href = response.url;
-                } else if (response.ok) {
-                    row.remove();  // Удаляем строку из DOM
+                if (response.ok) {
+                    row.remove();
                     console.log("Строка удалена из DOM.");
                 } else {
                     alert("Ошибка при удалении строки");
@@ -226,7 +279,7 @@
         }
     }
 
-
+    // Функция добавления новой строки (без data-id для новых строк)
     function addRow() {
         const table = document.getElementById("dataTable");
         const tbody = table.querySelector("tbody");
@@ -235,36 +288,37 @@
 
         const lastRow = rows[rows.length - 1];
         const newRow = lastRow.cloneNode(true);
-
+        newRow.removeAttribute("data-id");
         newRow.querySelectorAll("td").forEach(cell => {
             if (cell.hasAttribute("contenteditable")) {
                 cell.innerText = "";
             }
         });
-
         tbody.appendChild(newRow);
     }
 
+    // Функция добавления нового поля для столбца (без изменений)
     function addField() {
         const container = document.getElementById("fields");
         const div = document.createElement("div");
         div.className = "field-row";
         div.innerHTML = `
-            <input type="text" name="fields_name" placeholder="Имя столбца" required>
-            <select name="fields_type" required>
-                <option value="VARCHAR(255)">VARCHAR(255) - Текст</option>
-                <option value="INT">INT - Число</option>
-                <option value="BOOLEAN">BOOLEAN - Логический</option>
-                <option value="DATE">DATE - Дата</option>
-                <option value="TEXT">TEXT - Длинный текст</option>
-                <option value="FLOAT">FLOAT - Дробное</option>
-                <option value="TIMESTAMP">TIMESTAMP - Время</option>
-            </select>
-            <label><input type="checkbox" name="fields_notnull"> NOT NULL</label>
-        `;
+      <input type="text" name="fields_name" placeholder="Имя столбца" required>
+      <select name="fields_type" required>
+        <option value="VARCHAR(255)">VARCHAR(255)</option>
+        <option value="INT">INT</option>
+        <option value="BOOLEAN">BOOLEAN</option>
+        <option value="DATE">DATE</option>
+        <option value="TEXT">TEXT</option>
+        <option value="FLOAT">FLOAT</option>
+        <option value="TIMESTAMP">TIMESTAMP</option>
+      </select>
+      <label><input type="checkbox" name="fields_notnull"> NOT NULL</label>
+    `;
         container.appendChild(div);
     }
 
+    // Сбор данных из таблицы для отправки формы
     document.getElementById("editForm").addEventListener("submit", function (e) {
         const table = document.getElementById("dataTable");
         const rows = table.querySelectorAll("tbody tr");
@@ -272,28 +326,23 @@
 
         const headers = Array.from(table.querySelectorAll("thead th"))
             .map(th => th.innerText.trim())
-            .filter(name => name !== "Действие"); // исключаем колонку "Действие"
+            .filter(name => name !== "✖"); // исключаем колонку с иконкой удаления строки
 
         rows.forEach(row => {
-            const id = row.getAttribute("data-id");
-
             const rowData = {};
+            const id = row.getAttribute("data-id");
             if (id) {
                 rowData.id = id;
             }
-
             const cells = row.querySelectorAll("td[contenteditable='true']");
             cells.forEach((cell, i) => {
                 rowData[headers[i]] = cell.innerText.trim();
             });
-
             data.push(rowData);
         });
-
-        console.log("Отправляем JSON при сохранении:", data); // 🔍 лог
+        console.log("Отправляем JSON при сохранении:", data);
         document.getElementById("updatedJson").value = JSON.stringify(data);
     });
-
 </script>
 </body>
 </html>
