@@ -113,108 +113,123 @@ public class TableService {
 				}
 		}
 
-		public void updateOrInsertRow(String tableName, String id, Map<String, String> updateData) {
-				try {
-						Long longId = Long.parseLong(id);
-
-						// Проверка существования строки с таким id
-						String checkSql = "SELECT COUNT(*) FROM \"" + tableName + "\" WHERE \"id\" = ?";
-						int count = jdbcTemplate.queryForObject(checkSql, new Object[]{longId}, Integer.class);
-
-						if (count == 0) {
-								// Если строки нет, выполняем INSERT
-								System.out.println("Строка с id " + id + " не существует. Выполняем добавление строки.");
-								updateData.put("id", id); // Добавляем id в данные для вставки
-								insertRow(tableName, id, updateData); // Вставляем строку
-						} else {
-								// Если строка существует, выполняем UPDATE
-								System.out.println("Строка с id " + id + " существует. Выполняем обновление.");
-								// Обработка пустых значений для "mouse" (если нужно)
-								if (updateData.containsKey("mouse") && updateData.get("mouse").isEmpty()) {
-										updateData.put("mouse", null); // Заменяем пустое значение на NULL
-								}
-								// Обновляем строку
-								updateRow(tableName, id, updateData);
-						}
-
-				} catch (NumberFormatException e) {
-						throw new IllegalArgumentException("Некорректный формат ID: " + id, e);
-				}
-		}
-
+		// Обновление строки с автоматическим приведением типов
 		public void updateRow(String tableName, String id, Map<String, String> updateData) {
 				try {
 						Long longId = Long.parseLong(id);
+						List<String> setClauses = new ArrayList<>();
+						List<Object> params = new ArrayList<>();
 
-						// Формирование части SET запроса
-						String setClause = updateData.entrySet().stream()
-										.map(entry -> "\"" + entry.getKey() + "\" = ?")
-										.collect(Collectors.joining(", "));
-
-						Object[] params = new Object[updateData.size() + 1];
-						int index = 0;
 						for (Map.Entry<String, String> entry : updateData.entrySet()) {
-								params[index++] = entry.getValue();
+								String column = entry.getKey();
+								// Если значение пустое, заменяем на null
+								String value = (entry.getValue() == null || entry.getValue().trim().isEmpty()) ? null : entry.getValue();
+
+								// Получаем SQL-тип колонки автоматически
+								String sqlType = getSqlTypeForColumn(tableName, column);
+								if (sqlType == null) {
+										throw new RuntimeException("Не удалось определить тип для колонки " + column);
+								}
+
+								// Формируем выражение с кастом
+								setClauses.add("\"" + column + "\" = CAST(? AS " + sqlType + ")");
+								params.add(value);
 						}
-						params[index] = longId;
+						params.add(longId); // Добавляем id как последний параметр
 
-						String sql = "UPDATE \"" + tableName + "\" SET " + setClause + " WHERE \"id\" = ?";
+						String sql = "UPDATE \"" + tableName + "\" SET " + String.join(", ", setClauses) + " WHERE \"id\" = ?";
 
-						// 🔍 Выводим SQL и параметры
 						System.out.println("📤 SQL для updateRow: " + sql);
-						System.out.println("📦 Параметры для updateRow: " + Arrays.toString(params));
+						System.out.println("📦 Параметры для updateRow: " + params);
 
-						// Выполняем запрос на обновление
-						jdbcTemplate.update(sql, params);
-
+						int rowsUpdated = jdbcTemplate.update(sql, params.toArray());
+						if (rowsUpdated > 0) {
+								System.out.println("Строка обновлена успешно.");
+						} else {
+								System.out.println("Обновление не затронуло ни одной строки.");
+						}
 				} catch (NumberFormatException e) {
 						throw new IllegalArgumentException("Некорректный формат ID: " + id, e);
 				}
 		}
 
 		public void insertRow(String tableName, String id, Map<String, String> rowData) {
-				// Преобразуем id в Integer (или Long в зависимости от типа в базе данных)
-				Integer intId = Integer.parseInt(id); // Если id - BIGINT, используйте Long.parseLong(id)
+				// Добавляем id в данные (так как оно передается пользователем)
+				rowData.put("id", id);
 
-				// Добавляем id в rowData для вставки
-				rowData.put("id", String.valueOf(intId)); // Преобразуем intId обратно в строку для использования в запросе
-
-				// Формируем список столбцов для вставки
-				String columns = rowData.keySet().stream()
-								.map(col -> "\"" + col + "\"")
-								.collect(Collectors.joining(", "));
-
-				// Формируем плейсхолдеры для параметров
-				String placeholders = rowData.keySet().stream()
-								.map(col -> "?")
-								.collect(Collectors.joining(", "));
-
-				// Преобразуем значения в правильные типы для каждого столбца
+				List<String> columns = new ArrayList<>();
+				List<String> placeholders = new ArrayList<>();
 				List<Object> values = new ArrayList<>();
-				for (String column : rowData.keySet()) {
-						String value = rowData.get(column);
 
-						// Преобразуем строковые значения в нужные типы
+				for (Map.Entry<String, String> entry : rowData.entrySet()) {
+						String column = entry.getKey();
+						// Преобразуем пустую строку в null
+						String value = (entry.getValue() == null || entry.getValue().trim().isEmpty()) ? null : entry.getValue();
+						// Получаем SQL-тип колонки автоматически
+						String sqlType = getSqlTypeForColumn(tableName, column);
+						if (sqlType == null) {
+								throw new RuntimeException("Не удалось определить тип для колонки " + column);
+						}
+						columns.add("\"" + column + "\"");
+						placeholders.add("CAST(? AS " + sqlType + ")");
+						// Для поля id, если оно числовое, преобразуем строку в число
 						if ("id".equals(column)) {
-								values.add(intId); // Преобразуем id в Integer
+								values.add(Integer.parseInt(value));
 						} else {
-								values.add(value); // Остальные значения оставляем как есть
+								values.add(value);
 						}
 				}
 
-				// Формируем SQL запрос
-				String sql = "INSERT INTO \"" + tableName + "\" (" + columns + ") VALUES (" + placeholders + ")";
-
-				// 🔍 Выводим SQL и параметры для отладки
+				String sql = "INSERT INTO \"" + tableName + "\" (" + String.join(", ", columns) + ") VALUES (" + String.join(", ", placeholders) + ")";
 				System.out.println("📤 SQL для insertRow: " + sql);
 				System.out.println("📦 Параметры для insertRow: " + values);
 
-				// Выполняем запрос на вставку
 				jdbcTemplate.update(sql, values.toArray());
 		}
+		// Универсальный метод для проверки существования строки и обновления/вставки
+		public void updateOrInsertRow(String tableName, String id, Map<String, String> updateData) {
+				try {
+						Long longId = Long.parseLong(id);
+						String checkSql = "SELECT COUNT(*) FROM \"" + tableName + "\" WHERE \"id\" = ?";
+						int count = jdbcTemplate.queryForObject(checkSql, new Object[]{longId}, Integer.class);
 
-
-
-
+						if (count == 0) {
+								System.out.println("Строка с id " + id + " не существует. Выполняем добавление строки.");
+								updateData.put("id", id);
+								insertRow(tableName, id, updateData);
+						} else {
+								System.out.println("Строка с id " + id + " существует. Выполняем обновление.");
+								if (updateData.containsKey("mouse") && updateData.get("mouse").isEmpty()) {
+										updateData.put("mouse", null);
+								}
+								updateRow(tableName, id, updateData);
+						}
+				} catch (NumberFormatException e) {
+						throw new IllegalArgumentException("Некорректный формат ID: " + id, e);
+				}
+		}
+		/**
+		 * Получает SQL-тип колонки через information_schema.
+		 * Возвращает тип в виде строки, например "INTEGER", "VARCHAR", "DATE" и т.д.
+		 */
+		private String getSqlTypeForColumn(String tableName, String columnName) {
+				String sql = "SELECT UPPER(data_type) FROM information_schema.columns " +
+								"WHERE table_schema = 'public' AND table_name = ? AND column_name = ?";
+				try {
+						String dataType = jdbcTemplate.queryForObject(sql, new Object[]{tableName, columnName}, String.class);
+						if (dataType != null) {
+								// Пример преобразования типов:
+								if (dataType.contains("CHARACTER VARYING")) {
+										return "VARCHAR";
+								}
+								return dataType;
+						}
+						return null;
+				} catch (Exception e) {
+						System.err.println("Ошибка получения типа для колонки " + columnName + " таблицы " + tableName + ": " + e.getMessage());
+						return null;
+				}
+		}
 
 }
+
