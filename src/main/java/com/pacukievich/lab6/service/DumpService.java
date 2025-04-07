@@ -34,6 +34,7 @@ public class DumpService {
 
 				ProcessBuilder processBuilder = new ProcessBuilder(
 								PG_DUMP_PATH,
+								"--inserts",
 								"-h", HOST,
 								"-p", PORT,
 								"-U", USER,

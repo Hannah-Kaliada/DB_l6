@@ -10,21 +10,27 @@
             text-align: center;
             padding: 20px;
         }
-        .export-btn {
+        .export-btn, .back-btn, .save-btn, .add-row-btn {
             display: inline-block;
             margin-top: 20px;
             padding: 10px 15px;
-            background: #28a745;
-            color: white;
             text-decoration: none;
             border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            border: none;
         }
+        .export-btn { background: #7393B3; }
+        .export-btn:hover { background: #4343a3; }
+        .back-btn { background: #6c757d; }
+        .back-btn:hover { background: #5a6268; }
+        .save-btn { background: #28a745; }
+        .save-btn:hover { background: #218838; }
+        .add-row-btn { background: #007bff; }
+        .add-row-btn:hover { background: #0056b3; }
 
-        .export-btn:hover {
-            background: #218838;
-        }
         .container {
-            max-width: 90%;
+            width: 80vw;
             margin: auto;
             background: white;
             padding: 20px;
@@ -37,121 +43,210 @@
             border-collapse: collapse;
             margin-top: 20px;
         }
-
         th, td {
             border: 1px solid #ddd;
             padding: 10px;
             text-align: center;
         }
-
         th {
-            background-color: #007bff;
+            background-color: #37474f;
             color: white;
             cursor: pointer;
         }
+        th.sorted-asc::after { content: " ▲"; }
+        th.sorted-desc::after { content: " ▼"; }
 
-        th.sorted-asc::after {
-            content: " ▲";
+        td[contenteditable="true"] {
+            background-color: #fff8dc;
+            border: 1px solid #aaa;
         }
 
-        th.sorted-desc::after {
-            content: " ▼";
+        .field-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            align-items: center;
+            justify-content: center;
         }
 
-        .back-btn {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 15px;
-            background: #6c757d;
+        .add-field-btn {
+            margin-top: 15px;
+            padding: 8px 12px;
+            background: #007bff;
             color: white;
-            text-decoration: none;
+            border: none;
             border-radius: 4px;
+            cursor: pointer;
         }
 
-        .back-btn:hover {
-            background: #5a6268;
+        .add-field-btn:hover {
+            background: #0056b3;
+        }
+
+        .form-title {
+            margin-top: 30px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .delete-row-btn {
+            background: none;
+            border: none;
+            color: red;
+            font-size: 16px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 <div class="container">
     <h2 th:text="'Таблица: ' + ${tableName}"></h2>
-    <table id="dataTable">
-        <thead>
-        <tr th:if="${not #lists.isEmpty(tableData)}">
-            <th th:each="entry, iterStat : ${tableData[0].keySet()}" th:text="${entry}"></th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="row : ${tableData}">
-            <td th:each="value : ${row.values()}" th:text="${value}"></td>
-        </tr>
-        <tr th:if="${#lists.isEmpty(tableData)}">
-            <td colspan="100%" th:text="'Нет данных в таблице'"></td>
-        </tr>
-        </tbody>
-    </table>
+
+    <!-- Таблица с редактируемыми ячейками -->
+    <form id="editForm" th:action="@{'/tables/' + ${tableName} + '/update'}" method="post">
+        <table id="dataTable">
+            <thead>
+            <tr th:if="${not #lists.isEmpty(tableData)}">
+                <th th:each="entry : ${tableData[0].keySet()}" th:text="${entry}"></th>
+                <th>Действие</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="row, rowStat : ${tableData}" th:attr="data-id=${row['id']}">
+            <td th:each="value, colStat : ${row.values()}"
+                    contenteditable="true"
+                    th:attr="data-row=${rowStat.index}, data-col=${colStat.index}"
+                    th:text="${value}">Value</td>
+                <td><button type="button" class="delete-row-btn" onclick="deleteRow(this)">✖</button></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(tableData)}">
+                <td colspan="100%" th:text="'Нет данных в таблице'"></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <input type="hidden" name="updatedJson" id="updatedJson">
+        <button type="button" class="add-row-btn" onclick="addRow()">Добавить строку</button>
+        <button type="submit" class="save-btn">Сохранить изменения</button>
+    </form>
+
+    <!-- Кнопки навигации -->
     <a href="/tables" class="back-btn">Назад</a>
     <a th:href="@{'/tables/' + ${tableName} + '/export'}" class="export-btn">Экспорт в Excel</a>
+
+    <!-- Форма добавления столбцов -->
+    <div class="form-title">Добавить новые столбцы</div>
+    <form method="post" th:action="@{'/tables/' + ${tableName} + '/add-columns'}">
+        <div id="fields"></div>
+        <button type="button" class="add-field-btn" onclick="addField()">Добавить столбец</button>
+        <br>
+        <button type="submit" class="export-btn" style="margin-top: 15px;">Сохранить изменения</button>
+    </form>
 </div>
-</div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const table = document.getElementById('dataTable');
-        if (!table) return;
-        const headers = table.querySelectorAll('th');
-        let sortOrder = {}; // для отслеживания порядка сортировки по индексам столбцов
+    function deleteRow(button) {
+        const row = button.closest('tr');
+        const id = row.getAttribute('data-id');
+        const tableName = window.location.pathname.split("/").pop();
 
-        // Функция сортировки по заданной колонке и порядку (asc/desc)
-        function sortColumn(columnIndex, order) {
-            // Убираем классы сортировки у всех заголовков, кроме текущего
-            headers.forEach((h, idx) => {
-                if (idx !== columnIndex) {
-                    h.classList.remove('sorted-asc', 'sorted-desc');
-                }
-            });
-            const header = headers[columnIndex];
-            header.classList.remove('sorted-asc', 'sorted-desc');
-            header.classList.add(order === 'asc' ? 'sorted-asc' : 'sorted-desc');
-
-            const tbody = table.querySelector('tbody');
-            // Фильтруем только строки, содержащие td (исключая, например, строку с сообщением "Нет данных")
-            const rowsArray = Array.from(tbody.querySelectorAll('tr'))
-                .filter(row => row.querySelectorAll('td').length > 0);
-
-            rowsArray.sort((rowA, rowB) => {
-                const cellA = rowA.querySelectorAll('td')[columnIndex].innerText.trim();
-                const cellB = rowB.querySelectorAll('td')[columnIndex].innerText.trim();
-                // Если значения являются числами, сортируем числовым способом
-                const numA = parseFloat(cellA);
-                const numB = parseFloat(cellB);
-                if (!isNaN(numA) && !isNaN(numB)) {
-                    return order === 'asc' ? numA - numB : numB - numA;
-                } else {
-                    // Иначе строковое сравнение
-                    return order === 'asc' ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-                }
-            });
-
-            // Обновляем порядок строк в tbody
-            rowsArray.forEach(row => tbody.appendChild(row));
-            sortOrder[columnIndex] = order;
+        console.log("Удаление строки с ID:", id); // Логируем ID
+        if (!id) {
+            alert("ID строки не найден.");
+            return;
         }
 
-        // Добавляем обработчики клика на заголовки
-        headers.forEach((header, index) => {
-            header.addEventListener('click', function() {
-                const currentOrder = sortOrder[index] || 'asc';
-                const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
-                sortColumn(index, newOrder);
+        if (confirm("Вы уверены, что хотите удалить эту строку?")) {
+            fetch(`/tables/${tableName}/delete-row`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({ id: id })
+            }).then(response => {
+                console.log("Ответ от сервера:", response); // Логируем ответ от сервера
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else if (response.ok) {
+                    row.remove();  // Удаляем строку из DOM
+                    console.log("Строка удалена из DOM.");
+                } else {
+                    alert("Ошибка при удалении строки");
+                }
+            }).catch(error => {
+                alert("Ошибка запроса: " + error);
             });
+        }
+    }
+
+
+    function addRow() {
+        const table = document.getElementById("dataTable");
+        const tbody = table.querySelector("tbody");
+        const rows = tbody.querySelectorAll("tr");
+        if (rows.length === 0) return;
+
+        const lastRow = rows[rows.length - 1];
+        const newRow = lastRow.cloneNode(true);
+
+        newRow.querySelectorAll("td").forEach(cell => {
+            if (cell.hasAttribute("contenteditable")) {
+                cell.innerText = "";
+            }
         });
 
-        // По умолчанию сортируем по первой колонке по возрастанию, если таблица не пуста
-        if (headers.length > 0 && table.querySelector('tbody tr td')) {
-            sortColumn(0, 'asc');
-        }
+        tbody.appendChild(newRow);
+    }
+
+    function addField() {
+        const container = document.getElementById("fields");
+        const div = document.createElement("div");
+        div.className = "field-row";
+        div.innerHTML = `
+            <input type="text" name="fields_name" placeholder="Имя столбца" required>
+            <select name="fields_type" required>
+                <option value="VARCHAR(255)">VARCHAR(255) - Текст</option>
+                <option value="INT">INT - Число</option>
+                <option value="BOOLEAN">BOOLEAN - Логический</option>
+                <option value="DATE">DATE - Дата</option>
+                <option value="TEXT">TEXT - Длинный текст</option>
+                <option value="FLOAT">FLOAT - Дробное</option>
+                <option value="TIMESTAMP">TIMESTAMP - Время</option>
+            </select>
+            <label><input type="checkbox" name="fields_notnull"> NOT NULL</label>
+        `;
+        container.appendChild(div);
+    }
+
+    document.getElementById("editForm").addEventListener("submit", function (e) {
+        const table = document.getElementById("dataTable");
+        const rows = table.querySelectorAll("tbody tr");
+        const data = [];
+
+        const headers = Array.from(table.querySelectorAll("thead th"))
+            .map(th => th.innerText.trim())
+            .filter(name => name !== "Действие"); // исключаем колонку "Действие"
+
+        rows.forEach(row => {
+            const id = row.getAttribute("data-id");
+
+            const rowData = {};
+            if (id) {
+                rowData.id = id;
+            }
+
+            const cells = row.querySelectorAll("td[contenteditable='true']");
+            cells.forEach((cell, i) => {
+                rowData[headers[i]] = cell.innerText.trim();
+            });
+
+            data.push(rowData);
+        });
+
+        console.log("Отправляем JSON при сохранении:", data); // 🔍 лог
+        document.getElementById("updatedJson").value = JSON.stringify(data);
     });
+
 </script>
 </body>
 </html>

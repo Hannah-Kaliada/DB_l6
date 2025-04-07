@@ -1,5 +1,7 @@
 package com.pacukievich.lab6.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pacukievich.lab6.model.TableRequest;
 import com.pacukievich.lab6.model.FieldRequest;
 import com.pacukievich.lab6.service.DumpService;
@@ -17,7 +19,11 @@ import org.springframework.ui.Model;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -168,40 +174,122 @@ public class TableController {
 		}
 		@GetMapping("/{tableName}/export")
 		public void exportTable(@PathVariable String tableName, HttpServletResponse response) throws IOException {
-				// Устанавливаем тип контента для Excel
+				// Формируем временную метку
+				String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+
+				// Формируем имя файла
+				String fileName = String.format("%s_%s.xlsx", tableName, timestamp);
+
+				// Устанавливаем заголовки ответа
 				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-				response.setHeader("Content-Disposition", "attachment; filename=\"" + tableName + ".xlsx\"");
+				System.out.println("Generated file name: " + fileName);
+				String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString());
+
+				response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFileName);
 
 				// Получаем данные из базы данных
 				List<Map<String, Object>> tableData = tableService.getTableData(tableName);
 
 				// Создаем новый рабочий файл Excel
-				XSSFWorkbook workbook = new XSSFWorkbook();
-				Sheet sheet = workbook.createSheet("Data");
+				try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+						Sheet sheet = workbook.createSheet(tableName);
 
-				if (!tableData.isEmpty()) {
-						// Создаем строку заголовков
-						Row headerRow = sheet.createRow(0);
-						int headerCellIndex = 0;
-						for (String key : tableData.get(0).keySet()) {
-								Cell cell = headerRow.createCell(headerCellIndex++);
-								cell.setCellValue(key);
-						}
+						if (!tableData.isEmpty()) {
+								// Создаем строку заголовков
+								Row headerRow = sheet.createRow(0);
+								int headerCellIndex = 0;
+								for (String key : tableData.get(0).keySet()) {
+										Cell cell = headerRow.createCell(headerCellIndex++);
+										cell.setCellValue(key);
+								}
 
-						// Заполняем таблицу данными
-						for (int i = 0; i < tableData.size(); i++) {
-								Row row = sheet.createRow(i + 1);
-								int cellIndex = 0;
-								for (Object value : tableData.get(i).values()) {
-										Cell cell = row.createCell(cellIndex++);
-										cell.setCellValue(value != null ? value.toString() : "");
+								// Заполняем таблицу данными
+								for (int i = 0; i < tableData.size(); i++) {
+										Row row = sheet.createRow(i + 1);
+										int cellIndex = 0;
+										for (Object value : tableData.get(i).values()) {
+												Cell cell = row.createCell(cellIndex++);
+												cell.setCellValue(value != null ? value.toString() : "");
+										}
 								}
 						}
+
+						// Отправляем файл на клиентскую сторону
+						workbook.write(response.getOutputStream());
+				}
+		}
+		// Добавление новых столбцов
+		@PostMapping("/{tableName}/add-columns")
+		public String addColumns(@PathVariable String tableName,
+		                         @RequestParam List<String> fields_name,
+		                         @RequestParam List<String> fields_type,
+		                         @RequestParam(required = false) List<String> fields_notnull,
+		                         RedirectAttributes redirectAttributes) {
+				try {
+						tableService.addColumns(tableName, fields_name, fields_type, fields_notnull);
+						redirectAttributes.addFlashAttribute("success", "Столбцы добавлены успешно!");
+				} catch (Exception e) {
+						redirectAttributes.addFlashAttribute("error", "Ошибка добавления столбцов: " + e.getMessage());
+				}
+				return "redirect:/tables/" + tableName;
+		}
+
+		// Удаление столбца
+		@PostMapping("/{tableName}/delete-column")
+		public String deleteColumn(@PathVariable String tableName,
+		                           @RequestParam("columnName") String columnName,
+		                           RedirectAttributes redirectAttributes) {
+				try {
+						tableService.deleteColumn(tableName, columnName);
+						redirectAttributes.addFlashAttribute("success", "Столбец удалён успешно!");
+				} catch (Exception e) {
+						redirectAttributes.addFlashAttribute("error", "Ошибка удаления столбца: " + e.getMessage());
+				}
+				return "redirect:/tables/" + tableName;
+		}
+
+		// Удаление строки (по идентификатору)
+		@PostMapping("/{tableName}/delete-row")
+		public String deleteRow(@PathVariable String tableName,
+		                        @RequestParam("id") String id,
+		                        RedirectAttributes redirectAttributes) {
+				try {
+						tableService.deleteRow(tableName, id);
+						redirectAttributes.addFlashAttribute("success", "Строка удалена успешно!");
+				} catch (Exception e) {
+						redirectAttributes.addFlashAttribute("error", "Ошибка удаления строки: " + e.getMessage());
+				}
+				return "redirect:/tables/" + tableName;
+		}
+
+		@PostMapping("/{tableName}/update")
+		public String updateRows(
+						@PathVariable String tableName,
+						@RequestParam("updatedJson") String updatedJson,
+						RedirectAttributes redirectAttributes) {
+				try {
+						ObjectMapper mapper = new ObjectMapper();
+						List<Map<String, String>> updates = mapper.readValue(updatedJson, new TypeReference<>() {});
+
+						System.out.println("📥 Получены изменения для таблицы " + tableName + ": " + updates);
+
+						for (Map<String, String> row : updates) {
+								if (row.containsKey("id")) {
+										String id = row.remove("id");
+										System.out.println("🔄 Проверка и обновление строки с id=" + id + ": " + row);
+										tableService.updateOrInsertRow(tableName, id, row); // Обновляем или добавляем строку
+								}
+						}
+
+						redirectAttributes.addFlashAttribute("success", "Изменения успешно сохранены.");
+				} catch (Exception e) {
+						System.err.println("Ошибка при сохранении изменений: " + e.getMessage());
+						e.printStackTrace(); // Для подробного стека ошибки
+						redirectAttributes.addFlashAttribute("error", "Ошибка при сохранении: " + e.getMessage());
 				}
 
-				// Отправляем файл на клиентскую сторону
-				workbook.write(response.getOutputStream());
-				workbook.close();
+				return "redirect:/tables/" + tableName;
 		}
+
 
 }
