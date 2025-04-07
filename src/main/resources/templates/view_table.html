@@ -8,25 +8,28 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f4f6f8;
+            background-color: #f8f9fa;
             margin: 0;
             padding: 20px;
-            text-align: center;
+            color: #212529;
         }
+
         .container {
             max-width: 1200px;
             margin: 40px auto;
-            background: #fff;
+            background: #ffffff;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
+
         h2 {
             margin-bottom: 20px;
             font-size: 28px;
             text-align: left;
-            color: #333;
+            color: #212529;
         }
+
         .button-bar {
             display: flex;
             gap: 12px;
@@ -34,6 +37,7 @@
             justify-content: flex-end;
             flex-wrap: wrap;
         }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -44,86 +48,164 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
-            color: #fff;
+            color: #ffffff;
             transition: background 0.2s ease;
             text-decoration: none;
         }
+
         .btn-back { background: #6c757d; }
         .btn-back:hover { background: #5a6268; }
-        .btn-export { background: #8b5cf6; }
-        .btn-export:hover { background: #7c3aed; }
-        .btn-save { background: #22c55e; }
-        .btn-save:hover { background: #16a34a; }
-        .btn-add-row { background: #3b82f6; }
-        .btn-add-row:hover { background: #2563eb; }
-        .btn-delete-cols { background: #dc2626; }
-        .btn-delete-cols:hover { background: #b91c1c; }
+
+        .btn-export { background: #4b6cb7; }
+        .btn-export:hover { background: #3b5998; }
+
+        .btn-save { background: #198754; }
+        .btn-save:hover { background: #157347; }
+
+        .btn-add-row { background: #0d6efd; }
+        .btn-add-row:hover { background: #0b5ed7; }
+
+        .btn-delete-cols { background: #dc3545; }
+        .btn-delete-cols:hover { background: #bb2d3b; }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
+
         th, td {
-            border: 1px solid #e5e7eb;
+            border: 1px solid #dee2e6;
             padding: 10px;
             text-align: center;
             font-size: 14px;
+            color: #212529;
         }
+
         th {
-            background-color: #111827;
-            color: #fff;
+            background-color: #f1f3f5;
             font-weight: 600;
             cursor: pointer;
             position: relative;
         }
+
         th.selected {
-            background-color: #1f2937;
+            background-color: #ced4da;
         }
+
         th.sorted-asc::after { content: " ▲"; }
         th.sorted-desc::after { content: " ▼"; }
+
         td[contenteditable="true"] {
-            background-color: #fff8dc;
+            background-color: #fffbea;
+            border: 1px solid #dee2e6;
+            color: #212529;
         }
+
         .delete-row-btn {
             background: none;
             border: none;
-            color: #ef4444;
+            color: #dc3545;
             font-size: 18px;
             cursor: pointer;
             padding: 0;
         }
-        /* Для колонки с действием */
+
         th:last-child, td:last-child {
             width: 40px;
         }
-        /* Модальное окно для удаления столбцов (опционально можно сделать отдельной формой) */
+
         .modal {
             display: none;
             position: fixed;
             z-index: 1000;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.4);
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
         }
+
         .modal-content {
-            background: #fff;
-            margin: 10% auto;
+            background: #ffffff;
+            margin: auto;
             padding: 20px;
             border-radius: 8px;
             width: 40%;
             text-align: left;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            color: #212529;
         }
+
         .modal-content h3 {
             margin-top: 0;
         }
+
         .modal-buttons {
             margin-top: 20px;
             text-align: right;
         }
+
         .modal .btn {
             margin-left: 10px;
+        }
+        .field-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            transition: border 0.3s ease;
+        }
+
+        .field-row input[type="text"],
+        .field-row select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            font-size: 14px;
+            width: 100%;
+            transition: border 0.3s ease;
+        }
+
+        .field-row input[type="text"]:focus,
+        .field-row select:focus {
+            border-color: #0d6efd;
+            outline: none;
+        }
+
+        .field-row label {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .field-row label input {
+            margin-right: 8px;
+        }
+
+        .btn-add-field {
+            background-color: #0d6efd;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .btn-add-field:hover {
+            background-color: #0b5ed7;
+        }
+
+        .btn-add-field:active {
+            background-color: #1c66d3;
         }
     </style>
 </head>
@@ -137,12 +219,31 @@
         <a href="/tables" class="btn btn-back"><i class="fa-solid fa-arrow-left"></i> Назад</a>
         <a th:href="@{'/tables/' + ${tableName} + '/export'}" class="btn btn-export"><i class="fa-solid fa-file-export"></i> Экспорт</a>
         <button type="button" class="btn btn-add-row" onclick="addRow()"><i class="fa-solid fa-plus"></i> Добавить строку</button>
+        <button type="button" class="btn btn-add-column" onclick="openAddColumnModal()"><i class="fa-solid fa-plus"></i> Добавить столбец</button>
         <button type="submit" form="editForm" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Сохранить</button>
         <button type="button" class="btn btn-delete-cols" onclick="openDeleteColumnModal()">
             <i class="fa-solid fa-trash"></i> Удалить выбранные столбцы
         </button>
     </div>
 
+    <!-- Модальное окно для добавления столбца -->
+    <div id="addColumnModal" class="modal">
+        <div class="modal-content">
+            <h3>Добавить новые столбцы</h3>
+            <form id="addColumnsForm" method="post" th:action="@{'/tables/' + ${tableName} + '/add-columns'}">
+                <div id="fields"></div> <!-- Контейнер для добавляемых полей -->
+                <button type="button" class="btn btn-add-field" onclick="addField()">
+                    <i class="fa-solid fa-plus"></i> Добавить столбец
+                </button>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-back" onclick="closeAddColumnModal()">Отмена</button>
+                    <button type="submit" class="btn btn-save" style="margin-top: 15px;">
+                        <i class="fa-solid fa-floppy-disk"></i> Сохранить изменения
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
     <!-- Форма редактирования таблицы -->
     <form id="editForm" th:action="@{'/tables/' + ${tableName} + '/update'}" method="post">
         <table id="dataTable">
@@ -213,6 +314,15 @@
     function closeDeleteColumnModal() {
         document.getElementById("deleteColumnModal").style.display = "none";
     }
+    // Функция открытия модального окна для добавления столбцов
+    function openAddColumnModal() {
+        document.getElementById("addColumnModal").style.display = "block";
+    }
+
+    // Функция закрытия модального окна
+    function closeAddColumnModal() {
+        document.getElementById("addColumnModal").style.display = "none";
+    }
 
     // Функция удаления выбранных столбцов
     function deleteSelectedColumns() {
@@ -250,35 +360,46 @@
             });
     }
 
-    // Функция удаления строки (без изменений)
     function deleteRow(button) {
         const row = button.closest('tr');
         const id = row.getAttribute('data-id');
-        const tableName = window.location.pathname.split("/").pop();
+        const tableName = encodeURIComponent(window.location.pathname.split("/").pop());
 
-        console.log("Удаление строки с ID:", id);
+        console.log("Попытка удалить строку. Таблица:", tableName, "ID:", id);
+
         if (!id) {
             alert("ID строки не найден.");
             return;
         }
-        if (confirm("Вы уверены, что хотите удалить эту строку?")) {
-            fetch(`/tables/${tableName}/delete-row`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ id: id })
-            }).then(response => {
-                if (response.ok) {
-                    row.remove();
-                    console.log("Строка удалена из DOM.");
-                } else {
-                    alert("Ошибка при удалении строки");
-                }
-            }).catch(error => {
-                alert("Ошибка запроса: " + error);
-            });
-        }
-    }
 
+        if (!confirm("Вы уверены, что хотите удалить эту строку?")) {
+            return;
+        }
+
+        fetch(`/tables/${tableName}/delete-row`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({ id: id })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(errorText => {
+                        throw new Error("Сервер вернул ошибку: " + errorText);
+                    });
+                }
+                return response.text();
+            })
+            .then(data => {
+                row.remove();
+                console.log("Строка успешно удалена. Ответ сервера:", data);
+            })
+            .catch(error => {
+                console.error("Ошибка при удалении строки:", error);
+                alert("Ошибка при удалении строки: " + error.message);
+            });
+    }
     // Функция добавления новой строки (без data-id для новых строк)
     function addRow() {
         const table = document.getElementById("dataTable");
@@ -297,24 +418,24 @@
         tbody.appendChild(newRow);
     }
 
-    // Функция добавления нового поля для столбца (без изменений)
+    // Функция добавления нового поля для столбца
     function addField() {
         const container = document.getElementById("fields");
         const div = document.createElement("div");
         div.className = "field-row";
         div.innerHTML = `
-      <input type="text" name="fields_name" placeholder="Имя столбца" required>
-      <select name="fields_type" required>
-        <option value="VARCHAR(255)">VARCHAR(255)</option>
-        <option value="INT">INT</option>
-        <option value="BOOLEAN">BOOLEAN</option>
-        <option value="DATE">DATE</option>
-        <option value="TEXT">TEXT</option>
-        <option value="FLOAT">FLOAT</option>
-        <option value="TIMESTAMP">TIMESTAMP</option>
-      </select>
-      <label><input type="checkbox" name="fields_notnull"> NOT NULL</label>
-    `;
+            <input type="text" name="fields_name" placeholder="Имя столбца" required>
+            <select name="fields_type" required>
+                <option value="VARCHAR(255)">VARCHAR(255)</option>
+                <option value="INT">INT</option>
+                <option value="BOOLEAN">BOOLEAN</option>
+                <option value="DATE">DATE</option>
+                <option value="TEXT">TEXT</option>
+                <option value="FLOAT">FLOAT</option>
+                <option value="TIMESTAMP">TIMESTAMP</option>
+            </select>
+            <label><input type="checkbox" name="fields_notnull"> NOT NULL</label>
+        `;
         container.appendChild(div);
     }
 
@@ -343,6 +464,14 @@
         console.log("Отправляем JSON при сохранении:", data);
         document.getElementById("updatedJson").value = JSON.stringify(data);
     });
+    // Открытие модального окна для добавления столбца
+    function openAddColumnModal() {
+        document.getElementById("addColumnModal").style.display = "block";
+    }
+    // Закрытие модального окна
+    function closeAddColumnModal() {
+        document.getElementById("addColumnModal").style.display = "none";
+    }
 </script>
 </body>
 </html>

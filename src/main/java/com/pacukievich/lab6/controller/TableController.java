@@ -21,6 +21,7 @@ import org.springframework.ui.Model;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -250,20 +251,18 @@ public class TableController {
 				return "redirect:/tables/" + tableName;
 		}
 
-		// Удаление строки (по идентификатору)
 		@PostMapping("/{tableName}/delete-row")
-		public String deleteRow(@PathVariable String tableName,
-		                        @RequestParam("id") String id,
-		                        RedirectAttributes redirectAttributes) {
+		@ResponseBody
+		public ResponseEntity<String> deleteRow(@PathVariable String tableName,
+		                                        @RequestParam("id") String id) {
 				try {
-						tableService.deleteRow(tableName, id);
-						redirectAttributes.addFlashAttribute("success", "Строка удалена успешно!");
+						String decodedTableName = URLDecoder.decode(tableName, StandardCharsets.UTF_8); // ← вот это ключ!
+						tableService.deleteRow(decodedTableName, id);
+						return ResponseEntity.ok("Удалено успешно");
 				} catch (Exception e) {
-						redirectAttributes.addFlashAttribute("error", "Ошибка удаления строки: " + e.getMessage());
+						return ResponseEntity.badRequest().body("Ошибка: " + e.getMessage());
 				}
-				return "redirect:/tables/" + tableName;
 		}
-
 		@PostMapping("/{tableName}/update")
 		public String updateRows(
 						@PathVariable String tableName,
