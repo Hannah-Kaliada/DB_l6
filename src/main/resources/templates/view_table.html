@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8f9fa;
             margin: 0;
             padding: 20px;
@@ -72,34 +72,38 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            background-color: #eceff1; /* Match the background color */
         }
 
         th, td {
-            border: 1px solid #dee2e6;
-            padding: 10px;
+            border: 1px solid #ccc;
+            padding: 12px;
             text-align: center;
-            font-size: 14px;
-            color: #212529;
+            font-size: 1rem;
+            color: #37474f; /* Text color to match the theme */
         }
 
         th {
-            background-color: #f1f3f5;
-            font-weight: 600;
-            cursor: pointer;
-            position: relative;
+            background-color: #f5f7fa;
+            font-weight: bold;
+            color: #1d334a;
         }
 
-        th.selected {
-            background-color: #ced4da;
-        }
-
-        th.sorted-asc::after { content: " ▲"; }
-        th.sorted-desc::after { content: " ▼"; }
-
-        td[contenteditable="true"] {
-            background-color: #fffbea;
-            border: 1px solid #dee2e6;
+        td {
+            background-color: #fff;
             color: #212529;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f5f7fa; /* Zebra striping */
+        }
+
+        tr:hover td {
+            background-color: #dbe3e7; /* Hover effect */
+        }
+
+        th, td {
+            border-radius: 4px;
         }
 
         .delete-row-btn {

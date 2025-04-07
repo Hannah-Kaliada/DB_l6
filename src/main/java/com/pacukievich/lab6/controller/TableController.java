@@ -89,6 +89,10 @@ public class TableController {
 		@GetMapping
 		public String showTables(Model model) {
 				List<String> tables = tableService.getAllTables();
+
+				// Исключаем таблицу saved_queries из списка
+				tables.removeIf(table -> "saved_queries".equals(table));
+
 				model.addAttribute("tables", tables);
 				return "tables";
 		}
@@ -289,8 +293,10 @@ public class TableController {
 						redirectAttributes.addFlashAttribute("error", "Ошибка при сохранении: " + e.getMessage());
 				}
 
-				return "redirect:/tables/" + tableName;
+				return "redirect:/tables/" + URLEncoder.encode(tableName, StandardCharsets.UTF_8);
 		}
+
+
 		@PostMapping("/{tableName}/delete-columns")
 		@ResponseBody
 		public ResponseEntity<?> deleteColumns(@PathVariable String tableName, @RequestBody List<String> columns) {
@@ -302,5 +308,43 @@ public class TableController {
 				}
 		}
 
+		@GetMapping("/export-all")
+		public void exportAllTables(HttpServletResponse response) throws IOException {
+				String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+				String fileName = "full_export_" + timestamp + ".xlsx";
 
+				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+				String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString());
+				response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFileName);
+
+				// Получаем список всех таблиц
+				List<String> allTables = tableService.getAllTableNames();
+
+				try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+						for (String tableName : allTables) {
+								List<Map<String, Object>> tableData = tableService.getTableData(tableName);
+								Sheet sheet = workbook.createSheet(tableName.length() > 31 ? tableName.substring(0, 31) : tableName);
+
+								if (!tableData.isEmpty()) {
+										Row headerRow = sheet.createRow(0);
+										int headerCellIndex = 0;
+										for (String key : tableData.get(0).keySet()) {
+												Cell cell = headerRow.createCell(headerCellIndex++);
+												cell.setCellValue(key);
+										}
+
+										for (int i = 0; i < tableData.size(); i++) {
+												Row row = sheet.createRow(i + 1);
+												int cellIndex = 0;
+												for (Object value : tableData.get(i).values()) {
+														Cell cell = row.createCell(cellIndex++);
+														cell.setCellValue(value != null ? value.toString() : "");
+												}
+										}
+								}
+						}
+
+						workbook.write(response.getOutputStream());
+				}
+		}
 }

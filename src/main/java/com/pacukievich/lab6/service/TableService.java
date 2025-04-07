@@ -263,7 +263,12 @@ public class TableService {
 						throw new RuntimeException("Ошибка при выполнении SQL-запроса", e);
 				}
 		}
-
+		public List<String> getAllTableNames() {
+				return jdbcTemplate.queryForList(
+								"SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'",
+								String.class
+				);
+		}
 
 }
 

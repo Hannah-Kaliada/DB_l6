@@ -5,9 +5,9 @@
     <title>Список таблиц</title>
     <style>
         @keyframes gradientAnimation {
-            0% { background-position: 50% 0%; }
-            50% { background-position: 50% 100%; }
-            100% { background-position: 50% 0%; }
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         html, body {
@@ -17,12 +17,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(180deg, #455a64, #607d8b, #78909c, #90a4ae, #b0bec5);
-            background-size: 100% 500%;
-            animation: gradientAnimation 30s infinite alternate ease-in-out;
+            background: linear-gradient(-45deg, #455a64, #607d8b, #90a4ae, #b0bec5);
+            background-size: 400% 400%;
+            animation: gradientAnimation 15s ease infinite;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
         .container {
             margin-top: 200px;
             width: 70vw;
@@ -135,7 +134,9 @@
     </ul>
 
     <a href="/tables/new" class="add-btn">Добавить новую таблицу</a>
-    <a href="/tables/backup" class="backup-btn">Работа с бекапами</a>
+    <a href="/tables/backup" class="backup-btn">Резервное копирование</a>
+    <a href="/tables/export-all" class="add-btn">Экспортировать все таблицы</a>
+    <a href="/queries" class="add-btn">SQL-запросы</a>
 </div>
 </body>
 </html>

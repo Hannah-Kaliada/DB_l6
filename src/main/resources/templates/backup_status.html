@@ -2,22 +2,94 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Статус бекапа</title>
+    <title>Резервное копирование базы данных</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f7f9fc;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 60px auto;
+            background-color: #fff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        h3 {
+            margin-top: 40px;
+            font-size: 20px;
+            color: #444;
+        }
+
+        button {
+            background-color: #4a90e2;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #357ABD;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        #downloadLink {
+            margin-top: 15px;
+        }
+
+        #downloadLink a {
+            color: #4a90e2;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        #downloadLink a:hover {
+            text-decoration: underline;
+        }
+
+        form {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        input[type="file"] {
+            border: 1px solid #ccc;
+            padding: 8px;
+            border-radius: 6px;
+        }
+    </style>
     <script>
         function createBackup() {
-            // Отправляем запрос на создание бекапа
             fetch('/tables/backup', {
                 method: 'GET',
             })
-                .then(response => response.json()) // ожидаем JSON ответ
+                .then(response => response.json())
                 .then(data => {
+                    const messageEl = document.getElementById('message');
+                    const downloadLinkEl = document.getElementById('downloadLink');
+                    const downloadHref = document.getElementById('downloadLinkHref');
+
                     if (data.success) {
-                        // Показать ссылку на скачивание
-                        document.getElementById('downloadLink').style.display = 'inline';
-                        document.getElementById('message').innerText = 'Дамп успешно создан. Вы можете скачать его.';
-                    } else {
-                        // Показать ошибку
-                        document.getElementById('message').innerText = 'Ошибка при создании дампа: ' + data.error;
+                        messageEl.innerText = 'Дамп успешно создан. Вы можете скачать его.';
+                        downloadLinkEl.style.display = 'block';
+                        downloadHref.href = data.fileUrl || '/tables/download'; // Указать URL
                     }
                 })
                 .catch(error => {
@@ -28,24 +100,23 @@
 </head>
 <body>
 
-<div>
-    <!-- Кнопка для создания бекапа -->
-    <button onclick="createBackup()">Создать бекап</button>
+<div class="container">
+    <h2>Резервное копирование базы данных</h2>
+
+    <button onclick="createBackup()">Создать копию базы данных</button>
+
+    <p id="message"></p>
+
+    <div id="downloadLink" style="display: none;">
+        <a id="downloadLinkHref" href="#">Скачать копию базы данных</a>
+    </div>
+
+    <h3>Восстановить из копии базы данных</h3>
+    <form action="/tables/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required/>
+        <button type="submit">Восстановить, используя загруженную копию базы данных</button>
+    </form>
 </div>
-
-<!-- Сообщение для пользователя -->
-<p id="message"></p>
-
-<!-- Ссылка на скачивание бекапа, скрыта до создания -->
-<div id="downloadLink" style="display: none;">
-    <a id="downloadLinkHref" href="#">Скачать бекап</a>
-</div>
-
-<h3>Восстановить из бекапа</h3>
-<form action="/tables/upload" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" required/>
-    <button type="submit">Загрузить бекап</button>
-</form>
 
 </body>
 </html>
