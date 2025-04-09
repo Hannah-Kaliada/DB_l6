@@ -6,7 +6,12 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -254,6 +259,18 @@ public class TableService {
 								"SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'",
 								String.class
 				);
+		}
+		// ✅ Метод для получения списка имён столбцов
+		public List<String> getColumnNames(String tableName) {
+				String sql = "SELECT * FROM " + tableName + " LIMIT 1";
+				return jdbcTemplate.query(sql, rs -> {
+						List<String> columnNames = new ArrayList<>();
+						int columnCount = rs.getMetaData().getColumnCount();
+						for (int i = 1; i <= columnCount; i++) {
+								columnNames.add(rs.getMetaData().getColumnName(i));
+						}
+						return columnNames;
+				});
 		}
 
 }

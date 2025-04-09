@@ -238,12 +238,12 @@
     <form id="editForm" th:action="@{'/tables/' + ${tableName} + '/update'}" method="post">
         <table id="dataTable">
             <thead>
-            <tr th:if="${not #lists.isEmpty(tableData)}">
-                <th th:each="entry : ${tableData[0].keySet()}"
-                    th:text="${entry}"
+            <tr th:if="${not #lists.isEmpty(columnNames)}">
+                <th th:each="col : ${columnNames}"
+                    th:text="${col}"
                     onclick="toggleColumnSelection(this)">
                 </th>
-                <th></th>
+                <th></th> <!-- delete icon -->
             </tr>
             </thead>
             <tbody>

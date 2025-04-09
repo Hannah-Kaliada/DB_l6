@@ -105,12 +105,24 @@ public class TableController {
 		@GetMapping("/{tableName}")
 		public String viewTable(@PathVariable String tableName, Model model) {
 				List<Map<String, Object>> tableData = tableService.getTableData(tableName);
+				List<String> columnNames;
+
+				if (!tableData.isEmpty()) {
+
+						columnNames = new ArrayList<>(tableData.get(0).keySet());
+				} else {
+
+						columnNames = tableService.getColumnNames(tableName);
+				}
+
 				model.addAttribute("tableName", tableName);
 				model.addAttribute("tableData", tableData);
+				model.addAttribute("columnNames", columnNames);
+
 				return "view_table";
 		}
 
-		// Создание бекапа
+
 		@GetMapping("/backup")
 		public String backupDatabase(Model model) {
 				try {
@@ -329,4 +341,5 @@ public class TableController {
 						workbook.write(response.getOutputStream());
 				}
 		}
+
 }
