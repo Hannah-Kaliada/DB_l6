@@ -7,7 +7,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,7 +29,7 @@ public class TableService {
 
 				boolean hasPrimaryKey = false;
 				List<String> columnDefinitions = new ArrayList<>();
-				List<String> primaryKeys = new ArrayList<>(); // Список для хранения всех PRIMARY KEY
+				List<String> primaryKeys = new ArrayList<>();
 
 				for (FieldRequest field : request.getFields()) {
 						StringBuilder columnDef = new StringBuilder(field.getName() + " " + field.getType());
@@ -44,14 +43,13 @@ public class TableService {
 						}
 
 						if (field.isPrimaryKey()) {
-								primaryKeys.add(field.getName()); // Добавляем поле в список PRIMARY KEY
+								primaryKeys.add(field.getName());
 								hasPrimaryKey = true;
 						}
 
 						columnDefinitions.add(columnDef.toString());
 				}
 
-				// Если ни одно поле не имеет PRIMARY KEY, добавляем id SERIAL PRIMARY KEY
 				if (!hasPrimaryKey) {
 						columnDefinitions.add(0, "id SERIAL PRIMARY KEY");
 				} else {
@@ -65,12 +63,12 @@ public class TableService {
 
 				return sql.toString();
 		}
-		// Получает список всех таблиц в базе данных
+
 		public List<String> getAllTables() {
 				return jdbcTemplate.queryForList("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'", String.class);
 		}
 
-		// Удаляет таблицу из базы данных
+
 		public void deleteTable(String tableName) {
 				String sql = "DROP TABLE IF EXISTS \"" + tableName + "\" CASCADE";
 				jdbcTemplate.execute(sql);
@@ -78,13 +76,12 @@ public class TableService {
 
 
 		public List<Map<String, Object>> getTableData(String tableName) {
-				// Заключаем имя таблицы в двойные кавычки для корректной обработки пробелов и спецсимволов
+
 				String query = "SELECT * FROM \"" + tableName + "\"";
 				return jdbcTemplate.queryForList(query);
 		}
 
 
-		// Добавление столбцов в таблицу
 		public void addColumns(String tableName, List<String> fieldsName, List<String> fieldsType, List<String> fieldsNotNull) {
 				for (int i = 0; i < fieldsName.size(); i++) {
 						String columnName = fieldsName.get(i);
@@ -98,7 +95,6 @@ public class TableService {
 				}
 		}
 
-		// Удаление столбца из таблицы
 		public void deleteColumn(String tableName, String columnName) {
 				String sql = "ALTER TABLE \"" + tableName + "\" DROP COLUMN \"" + columnName + "\" CASCADE";
 				jdbcTemplate.execute(sql);
@@ -114,7 +110,6 @@ public class TableService {
 				}
 		}
 
-		// Обновление строки с автоматическим приведением типов
 		public void updateRow(String tableName, String id, Map<String, String> updateData) {
 				try {
 						Long longId = Long.parseLong(id);
@@ -123,20 +118,19 @@ public class TableService {
 
 						for (Map.Entry<String, String> entry : updateData.entrySet()) {
 								String column = entry.getKey();
-								// Если значение пустое, заменяем на null
+
 								String value = (entry.getValue() == null || entry.getValue().trim().isEmpty()) ? null : entry.getValue();
 
-								// Получаем SQL-тип колонки автоматически
 								String sqlType = getSqlTypeForColumn(tableName, column);
 								if (sqlType == null) {
 										throw new RuntimeException("Не удалось определить тип для колонки " + column);
 								}
 
-								// Формируем выражение с кастом
+
 								setClauses.add("\"" + column + "\" = CAST(? AS " + sqlType + ")");
 								params.add(value);
 						}
-						params.add(longId); // Добавляем id как последний параметр
+						params.add(longId);
 
 						String sql = "UPDATE \"" + tableName + "\" SET " + String.join(", ", setClauses) + " WHERE \"id\" = ?";
 
@@ -155,7 +149,7 @@ public class TableService {
 		}
 
 		public void insertRow(String tableName, String id, Map<String, String> rowData) {
-				// Добавляем id в данные (так как оно передается пользователем)
+
 				rowData.put("id", id);
 
 				List<String> columns = new ArrayList<>();
@@ -164,16 +158,13 @@ public class TableService {
 
 				for (Map.Entry<String, String> entry : rowData.entrySet()) {
 						String column = entry.getKey();
-						// Преобразуем пустую строку в null
 						String value = (entry.getValue() == null || entry.getValue().trim().isEmpty()) ? null : entry.getValue();
-						// Получаем SQL-тип колонки автоматически
 						String sqlType = getSqlTypeForColumn(tableName, column);
 						if (sqlType == null) {
 								throw new RuntimeException("Не удалось определить тип для колонки " + column);
 						}
 						columns.add("\"" + column + "\"");
 						placeholders.add("CAST(? AS " + sqlType + ")");
-						// Для поля id, если оно числовое, преобразуем строку в число
 						if ("id".equals(column)) {
 								values.add(Integer.parseInt(value));
 						} else {
@@ -187,7 +178,7 @@ public class TableService {
 
 				jdbcTemplate.update(sql, values.toArray());
 		}
-		// Универсальный метод для проверки существования строки и обновления/вставки
+
 		public void updateOrInsertRow(String tableName, String id, Map<String, String> updateData) {
 				try {
 						Long longId = Long.parseLong(id);
@@ -209,10 +200,7 @@ public class TableService {
 						throw new IllegalArgumentException("Некорректный формат ID: " + id, e);
 				}
 		}
-		/**
-		 * Получает SQL-тип колонки через information_schema.
-		 * Возвращает тип в виде строки, например "INTEGER", "VARCHAR", "DATE" и т.д.
-		 */
+
 		private String getSqlTypeForColumn(String tableName, String columnName) {
 				String sql = "SELECT UPPER(data_type) FROM information_schema.columns " +
 								"WHERE table_schema = 'public' AND table_name = ? AND column_name = ?";
@@ -240,14 +228,12 @@ public class TableService {
 						throw new IllegalArgumentException("Список удаляемых столбцов пуст");
 				}
 
-				// Валидация имён столбцов
 				for (String column : columns) {
 						if (column == null || column.isBlank() || column.equalsIgnoreCase("id")) {
 								throw new IllegalArgumentException("Недопустимое имя столбца для удаления: " + column);
 						}
 				}
 
-				// Безопасное экранирование имён таблицы и столбцов для PostgreSQL
 				String sanitizedTable = tableName.replaceAll("[^\\w\\d_]", "");
 				String sql = "ALTER TABLE \"" + sanitizedTable + "\" " +
 								columns.stream()

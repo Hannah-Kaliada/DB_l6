@@ -6,7 +6,7 @@ public class TableRequest {
 		private String tableName;
 		private List<FieldRequest> fields;
 
-		// Геттер и сеттеры
+
 		public String getTableName() {
 				return tableName;
 		}

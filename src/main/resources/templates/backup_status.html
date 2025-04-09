@@ -89,7 +89,7 @@
                     if (data.success) {
                         messageEl.innerText = 'Дамп успешно создан. Вы можете скачать его.';
                         downloadLinkEl.style.display = 'block';
-                        downloadHref.href = data.fileUrl || '/tables/download'; // Указать URL
+                        downloadHref.href = data.fileUrl || '/tables/download';
                     }
                 })
                 .catch(error => {

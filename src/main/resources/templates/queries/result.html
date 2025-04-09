@@ -30,7 +30,6 @@
             color: #37474f;
         }
 
-        /* Стиль для кнопки экспорта */
         .export-btn-container {
             text-align: center;
             margin-top: 20px;
@@ -75,13 +74,11 @@
 <p th:if="${result == null or result.isEmpty()}" style="text-align:center; color: grey;">
     Нет данных для отображения.
 </p>
-<!-- Кнопка экспорта в Excel -->
 <div class="export-btn-container">
     <button type="button" class="run-btn" onclick="exportToExcel()">Экспорт в Excel</button>
 </div>
 <script>
     function exportToExcel() {
-        // Считываем данные из таблицы
         const tableData = [];
         const headers = Array.from(document.querySelectorAll('th')).map(th => th.innerText);
         const rows = document.querySelectorAll('tbody tr');
@@ -95,7 +92,6 @@
             tableData.push(rowData);
         });
 
-        // Отправляем данные на сервер в формате JSON
         const url = `/queries/export`;
         fetch(url, {
             method: 'POST',
@@ -106,15 +102,15 @@
         })
             .then(response => {
                 if (response.ok) {
-                    return response.blob();  // Получаем Blob-объект для файла Excel
+                    return response.blob();
                 }
                 throw new Error('Ошибка при экспорте данных');
             })
             .then(blob => {
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = 'query_result.xlsx';  // Имя файла для скачивания
-                link.click();  // Инициируем скачивание файла
+                link.download = 'query_result.xlsx';
+                link.click();
             })
             .catch(error => {
                 console.error('Error:', error);

@@ -3,7 +3,6 @@ package com.pacukievich.lab6.controller;
 import com.pacukievich.lab6.model.SavedQuery;
 import com.pacukievich.lab6.repository.SavedQueryRepository;
 import com.pacukievich.lab6.service.SavedQueryService;
-import jakarta.servlet.http.HttpServletResponse;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -13,17 +12,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import org.springframework.ui.Model;
 
 @Controller
 @RequestMapping("/queries")
@@ -67,13 +62,12 @@ public class SavedQueryController {
 		public String saveAndExecuteQuery(@RequestParam String name,
 		                                  @RequestParam String queryText,
 		                                  Model model) {
-				// Сохраняем запрос в БД
+
 				SavedQuery savedQuery = new SavedQuery();
 				savedQuery.setName(name);
 				savedQuery.setQueryText(queryText);
 				repository.save(savedQuery);
 
-				// Выполняем его
 				List<Map<String, Object>> result = jdbcTemplate.queryForList(queryText);
 				model.addAttribute("result", result);
 				model.addAttribute("queryName", name);
@@ -83,12 +77,10 @@ public class SavedQueryController {
 		public ResponseEntity<byte[]> exportToExcel(@RequestBody ExportRequest exportRequest) throws IOException {
 				List<Map<String, String>> tableData = exportRequest.getData();
 
-				// Создаем новый Excel файл
 				Workbook workbook = new XSSFWorkbook();
 				Sheet sheet = workbook.createSheet("Query Results");
 
 				if (!tableData.isEmpty()) {
-						// Добавляем заголовки
 						Row headerRow = sheet.createRow(0);
 						int colIndex = 0;
 						for (String header : tableData.get(0).keySet()) {
@@ -96,7 +88,7 @@ public class SavedQueryController {
 								cell.setCellValue(header);
 						}
 
-						// Добавляем данные
+
 						int rowIndex = 1;
 						for (Map<String, String> rowData : tableData) {
 								Row row = sheet.createRow(rowIndex++);
@@ -108,12 +100,10 @@ public class SavedQueryController {
 						}
 				}
 
-				// Записываем в выходной поток
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 				workbook.write(out);
 				workbook.close();
 
-				// Создаем ResponseEntity с данными для скачивания
 				byte[] byteArray = out.toByteArray();
 				HttpHeaders headers = new HttpHeaders();
 				headers.add("Content-Disposition", "attachment; filename=query_result.xlsx");
@@ -123,7 +113,6 @@ public class SavedQueryController {
 								.body(byteArray);
 		}
 
-		// Класс для обработки JSON запроса
 		public static class ExportRequest {
 				private List<Map<String, String>> data;
 

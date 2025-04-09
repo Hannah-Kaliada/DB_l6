@@ -76,13 +76,13 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;  /* Можно заменить на конкретную высоту, если нужно */
+            height: 100vh;
         }
 
         .run-btn {
-            padding: 10px 20px; /* Отступы для кнопки */
-            font-size: 16px;    /* Размер текста */
-            cursor: pointer;   /* Указатель при наведении */
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
         }
         textarea {
             height: 300px;
@@ -109,7 +109,6 @@
             background-color: #29465c;
         }
 
-        /* Модальное окно */
         .modal {
             display: none;
             position: fixed;
@@ -163,7 +162,6 @@
 </head>
 <body>
 
-<!-- Левая колонка -->
 <div class="left-panel">
     <h2>Сохранённые запросы</h2>
     <ul class="query-list">
@@ -173,7 +171,6 @@
     </ul>
 </div>
 
-<!-- Правая колонка -->
 <div class="right-panel">
     <h2>Новый запрос</h2>
     <form id="queryForm" th:action="@{/queries/execute}" method="post">
@@ -185,7 +182,6 @@
     </form>
 </div>
 
-<!-- Модальное окно -->
 <div id="saveModal" class="modal">
     <div class="modal-content">
         <p>Сохранить этот запрос?</p>
@@ -212,7 +208,6 @@
         form.submit();
     }
 
-    // Закрыть модалку при клике вне её
     window.onclick = function(event) {
         const modal = document.getElementById('saveModal');
         if (event.target === modal) {

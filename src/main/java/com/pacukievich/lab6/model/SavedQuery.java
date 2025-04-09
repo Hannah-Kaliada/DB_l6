@@ -16,8 +16,6 @@ public class SavedQuery {
 		@Column(name = "query_text", nullable = false, columnDefinition = "TEXT")
 		private String queryText;
 
-		// Геттеры и сеттеры
-
 		public Long getId() {
 				return id;
 		}

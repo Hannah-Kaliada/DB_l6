@@ -2,8 +2,8 @@ package com.pacukievich.lab6.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pacukievich.lab6.model.TableRequest;
 import com.pacukievich.lab6.model.FieldRequest;
+import com.pacukievich.lab6.model.TableRequest;
 import com.pacukievich.lab6.service.DumpService;
 import com.pacukievich.lab6.service.TableService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,10 +14,10 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import org.springframework.ui.Model;
 
 import java.io.File;
 import java.io.IOException;
@@ -90,7 +90,6 @@ public class TableController {
 		public String showTables(Model model) {
 				List<String> tables = tableService.getAllTables();
 
-				// Исключаем таблицу saved_queries из списка
 				tables.removeIf(table -> "saved_queries".equals(table));
 
 				model.addAttribute("tables", tables);
@@ -115,18 +114,16 @@ public class TableController {
 		@GetMapping("/backup")
 		public String backupDatabase(Model model) {
 				try {
-						// Получаем путь к файлу дампа в формате plain (sql)
 						String dumpFilePath = dumpService.createDump();
 
 						model.addAttribute("message", "Дамп успешно создан: " + dumpFilePath);
-						model.addAttribute("downloadLink", "/tables/download?file=" + dumpFilePath); // Ссылка на скачивание
+						model.addAttribute("downloadLink", "/tables/download?file=" + dumpFilePath);
 				} catch (Exception e) {
 						model.addAttribute("error", "Ошибка создания дампа: " + e.getMessage());
 				}
 				return "backup_status";
 		}
 
-		// Восстановление из дампа
 		@PostMapping("/restore")
 		public String restoreDatabase(@RequestParam("dumpFilePath") String dumpFilePath, Model model) {
 				try {
@@ -138,7 +135,6 @@ public class TableController {
 				return "backup_status";
 		}
 
-		// Скачать бекап
 		@GetMapping("/download")
 		public void downloadBackup(@RequestParam("file") String fileName, HttpServletResponse response) throws IOException {
 				File file = new File(fileName);
@@ -151,7 +147,6 @@ public class TableController {
 				}
 		}
 
-		// Загрузка файла бекапа для восстановления
 		@PostMapping("/upload")
 		public String uploadBackup(@RequestParam("file") MultipartFile file, RedirectAttributes redirectAttributes) {
 				try {
@@ -160,17 +155,14 @@ public class TableController {
 								return "redirect:/tables";
 						}
 
-						// Путь к папке для сохранения
 						File targetFile = new File(System.getProperty("user.home") + File.separator + "Downloads" + File.separator + file.getOriginalFilename());
 						file.transferTo(targetFile);
 
-						// Проверка формата файла (только .sql)
 						if (!targetFile.getName().endsWith(".sql")) {
 								redirectAttributes.addFlashAttribute("error", "Неверный формат файла. Ожидается файл с расширением .sql.");
 								return "redirect:/tables";
 						}
 
-						// Восстановление из загруженного дампа
 						dumpService.restoreDump(targetFile.getAbsolutePath());
 
 						redirectAttributes.addFlashAttribute("success", "База данных успешно восстановлена из загруженного бекапа!");
@@ -181,28 +173,22 @@ public class TableController {
 		}
 		@GetMapping("/{tableName}/export")
 		public void exportTable(@PathVariable String tableName, HttpServletResponse response) throws IOException {
-				// Формируем временную метку
 				String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
-				// Формируем имя файла
 				String fileName = String.format("%s_%s.xlsx", tableName, timestamp);
 
-				// Устанавливаем заголовки ответа
 				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 				System.out.println("Generated file name: " + fileName);
 				String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString());
 
 				response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFileName);
 
-				// Получаем данные из базы данных
 				List<Map<String, Object>> tableData = tableService.getTableData(tableName);
 
-				// Создаем новый рабочий файл Excel
 				try (XSSFWorkbook workbook = new XSSFWorkbook()) {
 						Sheet sheet = workbook.createSheet(tableName);
 
 						if (!tableData.isEmpty()) {
-								// Создаем строку заголовков
 								Row headerRow = sheet.createRow(0);
 								int headerCellIndex = 0;
 								for (String key : tableData.get(0).keySet()) {
@@ -210,7 +196,6 @@ public class TableController {
 										cell.setCellValue(key);
 								}
 
-								// Заполняем таблицу данными
 								for (int i = 0; i < tableData.size(); i++) {
 										Row row = sheet.createRow(i + 1);
 										int cellIndex = 0;
@@ -221,11 +206,10 @@ public class TableController {
 								}
 						}
 
-						// Отправляем файл на клиентскую сторону
 						workbook.write(response.getOutputStream());
 				}
 		}
-		// Добавление новых столбцов
+
 		@PostMapping("/{tableName}/add-columns")
 		public String addColumns(@PathVariable String tableName,
 		                         @RequestParam List<String> fields_name,
@@ -241,7 +225,6 @@ public class TableController {
 				return "redirect:/tables/" + tableName;
 		}
 
-		// Удаление столбца
 		@PostMapping("/{tableName}/delete-column")
 		public String deleteColumn(@PathVariable String tableName,
 		                           @RequestParam("columnName") String columnName,
@@ -260,7 +243,7 @@ public class TableController {
 		public ResponseEntity<String> deleteRow(@PathVariable String tableName,
 		                                        @RequestParam("id") String id) {
 				try {
-						String decodedTableName = URLDecoder.decode(tableName, StandardCharsets.UTF_8); // ← вот это ключ!
+						String decodedTableName = URLDecoder.decode(tableName, StandardCharsets.UTF_8);
 						tableService.deleteRow(decodedTableName, id);
 						return ResponseEntity.ok("Удалено успешно");
 				} catch (Exception e) {
@@ -276,20 +259,20 @@ public class TableController {
 						ObjectMapper mapper = new ObjectMapper();
 						List<Map<String, String>> updates = mapper.readValue(updatedJson, new TypeReference<>() {});
 
-						System.out.println("📥 Получены изменения для таблицы " + tableName + ": " + updates);
+						System.out.println("Получены изменения для таблицы " + tableName + ": " + updates);
 
 						for (Map<String, String> row : updates) {
 								if (row.containsKey("id")) {
 										String id = row.remove("id");
-										System.out.println("🔄 Проверка и обновление строки с id=" + id + ": " + row);
-										tableService.updateOrInsertRow(tableName, id, row); // Обновляем или добавляем строку
+										System.out.println("Проверка и обновление строки с id=" + id + ": " + row);
+										tableService.updateOrInsertRow(tableName, id, row);
 								}
 						}
 
 						redirectAttributes.addFlashAttribute("success", "Изменения успешно сохранены.");
 				} catch (Exception e) {
 						System.err.println("Ошибка при сохранении изменений: " + e.getMessage());
-						e.printStackTrace(); // Для подробного стека ошибки
+						e.printStackTrace();
 						redirectAttributes.addFlashAttribute("error", "Ошибка при сохранении: " + e.getMessage());
 				}
 
@@ -317,7 +300,6 @@ public class TableController {
 				String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString());
 				response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFileName);
 
-				// Получаем список всех таблиц
 				List<String> allTables = tableService.getAllTableNames();
 
 				try (XSSFWorkbook workbook = new XSSFWorkbook()) {

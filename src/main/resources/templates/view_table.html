@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title th:text="'Таблица: ' + ${tableName}"></title>
-    <!-- Подключаем FontAwesome для иконок -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
@@ -72,38 +71,27 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
-            background-color: #eceff1; /* Match the background color */
         }
-
         th, td {
-            border: 1px solid #ccc;
-            padding: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 10px;
             text-align: center;
-            font-size: 1rem;
-            color: #37474f; /* Text color to match the theme */
+            font-size: 14px;
         }
-
         th {
-            background-color: #f5f7fa;
-            font-weight: bold;
-            color: #1d334a;
+            background-color: #111827;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
         }
-
-        td {
-            background-color: #fff;
-            color: #212529;
+        th.selected {
+            background-color: #1f2937;
         }
-
-        tr:nth-child(even) td {
-            background-color: #f5f7fa; /* Zebra striping */
-        }
-
-        tr:hover td {
-            background-color: #dbe3e7; /* Hover effect */
-        }
-
-        th, td {
-            border-radius: 4px;
+        th.sorted-asc::after { content: " ▲"; }
+        th.sorted-desc::after { content: " ▼"; }
+        td[contenteditable="true"] {
+            background-color: #fffffe;
         }
 
         .delete-row-btn {
@@ -215,10 +203,9 @@
 </head>
 <body>
 <div class="container">
-    <!-- Заголовок -->
+
     <h2 th:text="'Таблица: ' + ${tableName}"></h2>
 
-    <!-- Панель кнопок (Навигация) -->
     <div class="button-bar">
         <a href="/tables" class="btn btn-back"><i class="fa-solid fa-arrow-left"></i> Назад</a>
         <a th:href="@{'/tables/' + ${tableName} + '/export'}" class="btn btn-export"><i class="fa-solid fa-file-export"></i> Экспорт</a>
@@ -230,12 +217,11 @@
         </button>
     </div>
 
-    <!-- Модальное окно для добавления столбца -->
     <div id="addColumnModal" class="modal">
         <div class="modal-content">
             <h3>Добавить новые столбцы</h3>
             <form id="addColumnsForm" method="post" th:action="@{'/tables/' + ${tableName} + '/add-columns'}">
-                <div id="fields"></div> <!-- Контейнер для добавляемых полей -->
+                <div id="fields"></div>
                 <button type="button" class="btn btn-add-field" onclick="addField()">
                     <i class="fa-solid fa-plus"></i> Добавить столбец
                 </button>
@@ -248,17 +234,16 @@
             </form>
         </div>
     </div>
-    <!-- Форма редактирования таблицы -->
+
     <form id="editForm" th:action="@{'/tables/' + ${tableName} + '/update'}" method="post">
         <table id="dataTable">
             <thead>
             <tr th:if="${not #lists.isEmpty(tableData)}">
-                <!-- Каждый заголовок кликабельный для выделения столбца -->
                 <th th:each="entry : ${tableData[0].keySet()}"
                     th:text="${entry}"
                     onclick="toggleColumnSelection(this)">
                 </th>
-                <th><!-- Кнопка удаления строки, оставляем как есть --></th>
+                <th></th>
             </tr>
             </thead>
             <tbody>
@@ -282,7 +267,7 @@
     </form>
 </div>
 
-<!-- Модальное окно для удаления столбцов -->
+
 <div id="deleteColumnModal" class="modal">
     <div class="modal-content">
         <h3>Удаление столбцов</h3>
@@ -294,18 +279,15 @@
     </div>
 </div>
 
-<!-- FontAwesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
 <script>
-    // Функция для переключения выделения столбца при клике по заголовку
     function toggleColumnSelection(thElem) {
         thElem.classList.toggle("selected");
     }
 
-    // Функция открытия модального окна для удаления столбцов
     function openDeleteColumnModal() {
-        // Проверяем, какие столбцы выделены
+
         let selected = document.querySelectorAll("thead th.selected");
         if (selected.length === 0) {
             alert("Выберите столбцы для удаления, кликнув по их заголовкам.");
@@ -314,36 +296,32 @@
         document.getElementById("deleteColumnModal").style.display = "block";
     }
 
-    // Функция закрытия модального окна
     function closeDeleteColumnModal() {
         document.getElementById("deleteColumnModal").style.display = "none";
     }
-    // Функция открытия модального окна для добавления столбцов
+
     function openAddColumnModal() {
         document.getElementById("addColumnModal").style.display = "block";
     }
 
-    // Функция закрытия модального окна
     function closeAddColumnModal() {
         document.getElementById("addColumnModal").style.display = "none";
     }
 
-    // Функция удаления выбранных столбцов
     function deleteSelectedColumns() {
         let selected = document.querySelectorAll("thead th.selected");
         if (selected.length === 0) {
             alert("Нет выделенных столбцов.");
             return;
         }
-        // Собираем названия столбцов для удаления
+
         let columns = [];
         selected.forEach(th => {
             columns.push(th.innerText.trim());
         });
 
-        // Отправляем запрос на сервер для удаления столбцов
         const tableName = window.location.pathname.split("/").pop();
-        // Формируем данные для отправки (например, через POST форму)
+
         fetch(`/tables/${tableName}/delete-columns`, {
             method: 'POST',
             headers: {
@@ -353,7 +331,6 @@
         })
             .then(response => {
                 if (response.ok) {
-                    // Если успешно, обновляем страницу
                     window.location.reload();
                 } else {
                     alert("Ошибка при удалении столбцов");
@@ -404,25 +381,43 @@
                 alert("Ошибка при удалении строки: " + error.message);
             });
     }
-    // Функция добавления новой строки (без data-id для новых строк)
+
     function addRow() {
         const table = document.getElementById("dataTable");
         const tbody = table.querySelector("tbody");
-        const rows = tbody.querySelectorAll("tr");
-        if (rows.length === 0) return;
+        const placeholderRow = tbody.querySelector("tr td[colspan]");
+        if (placeholderRow) {
+            // Удаляем строку-заглушку "Нет данных"
+            tbody.innerHTML = "";
+        }
 
-        const lastRow = rows[rows.length - 1];
-        const newRow = lastRow.cloneNode(true);
-        newRow.removeAttribute("data-id");
-        newRow.querySelectorAll("td").forEach(cell => {
-            if (cell.hasAttribute("contenteditable")) {
-                cell.innerText = "";
-            }
+        const headers = Array.from(table.querySelectorAll("thead th"))
+            .map(th => th.innerText.trim())
+            .filter(name => name !== "");
+
+        const newRow = document.createElement("tr");
+
+        headers.forEach((header, index) => {
+            const td = document.createElement("td");
+            td.setAttribute("contenteditable", "true");
+            td.setAttribute("data-row", tbody.rows.length);
+            td.setAttribute("data-col", index);
+            td.innerText = "";
+            newRow.appendChild(td);
         });
+
+        // Добавляем ячейку с кнопкой удаления строки
+        const deleteCell = document.createElement("td");
+        deleteCell.innerHTML = `
+        <button type="button" class="delete-row-btn" onclick="deleteRow(this)">
+            <i class="fa-solid fa-trash"></i>
+        </button>
+    `;
+        newRow.appendChild(deleteCell);
+
         tbody.appendChild(newRow);
     }
 
-    // Функция добавления нового поля для столбца
     function addField() {
         const container = document.getElementById("fields");
         const div = document.createElement("div");
@@ -443,7 +438,6 @@
         container.appendChild(div);
     }
 
-    // Сбор данных из таблицы для отправки формы
     document.getElementById("editForm").addEventListener("submit", function (e) {
         const table = document.getElementById("dataTable");
         const rows = table.querySelectorAll("tbody tr");
@@ -451,7 +445,7 @@
 
         const headers = Array.from(table.querySelectorAll("thead th"))
             .map(th => th.innerText.trim())
-            .filter(name => name !== "✖"); // исключаем колонку с иконкой удаления строки
+            .filter(name => name !== "✖");
 
         rows.forEach(row => {
             const rowData = {};
@@ -468,11 +462,11 @@
         console.log("Отправляем JSON при сохранении:", data);
         document.getElementById("updatedJson").value = JSON.stringify(data);
     });
-    // Открытие модального окна для добавления столбца
+
     function openAddColumnModal() {
         document.getElementById("addColumnModal").style.display = "block";
     }
-    // Закрытие модального окна
+
     function closeAddColumnModal() {
         document.getElementById("addColumnModal").style.display = "none";
     }
