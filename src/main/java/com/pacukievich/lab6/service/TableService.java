@@ -6,28 +6,31 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class TableService {
 		private final JdbcTemplate jdbcTemplate;
+		private final DataSource dataSource;
 
-		public TableService(JdbcTemplate jdbcTemplate) {
+		public TableService(JdbcTemplate jdbcTemplate, DataSource dataSource) {
 				this.jdbcTemplate = jdbcTemplate;
+				this.dataSource = dataSource;
 		}
 
 		public void createTable(TableRequest request) {
 				String sql = generateCreateTableSQL(request);
 				jdbcTemplate.execute(sql);
 		}
+
+
 
 		private String generateCreateTableSQL(TableRequest request) {
 				StringBuilder sql = new StringBuilder("CREATE TABLE " + request.getTableName() + " (");
@@ -260,6 +263,8 @@ public class TableService {
 								String.class
 				);
 		}
+
+
 		// ✅ Метод для получения списка имён столбцов
 		public List<String> getColumnNames(String tableName) {
 				String sql = "SELECT * FROM " + tableName + " LIMIT 1";
@@ -271,6 +276,29 @@ public class TableService {
 						}
 						return columnNames;
 				});
+		}
+
+		public List<Map<String, Object>> searchRowsByColumn(String tableName, String columnName, String searchTerm) {
+				// Экранируем имена таблицы и столбца
+				String sql = String.format(
+								"SELECT * FROM \"%s\" WHERE \"%s\" ILIKE ?",
+								tableName, columnName
+				);
+				return jdbcTemplate.queryForList(sql, "%" + searchTerm + "%");
+		}
+
+
+
+		public List<String> debugColumnValues(String tableName, String columnName) {
+				String sql = String.format("SELECT \"%s\" FROM \"%s\"", columnName, tableName);
+				List<String> values = jdbcTemplate.queryForList(sql, String.class);
+
+				System.out.println("📊 Отладка. Таблица: " + tableName + ", колонка: " + columnName);
+				for (int i = 0; i < values.size(); i++) {
+						System.out.println(i + ": [" + values.get(i) + "]");
+				}
+
+				return values;
 		}
 
 }
