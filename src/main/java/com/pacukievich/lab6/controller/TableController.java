@@ -337,7 +337,6 @@ public class TableController {
 										}
 								}
 						}
-
 						workbook.write(response.getOutputStream());
 				}
 		}
